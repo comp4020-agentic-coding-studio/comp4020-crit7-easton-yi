@@ -121,24 +121,3 @@ unchanged — motion is dropped, nothing else is.
 Every commit above kept `pnpm check` green (typecheck, build, and the full
 Vitest suite — 60/60 passing as of the last commit) before it landed; nothing
 here was committed red.
-
-## Repo naming discrepancy (not fixed)
-
-Noticed this repo's GitHub name is `comp4020-crit7-easton-yi` (all lowercase),
-while every other Classroom-provisioned repo for this course
-(`comp4020-ass1-Easton-Yi`, `comp4020-ass2-Easton-Yi`,
-`comp4020-crit1-Easton-Yi` through `comp4020-crit5-Easton-Yi`) keeps the
-capitalised `Easton-Yi`. So this is an outlier in an otherwise consistent
-naming pattern, not a course-wide convention change — most likely a one-off
-typo in how this assignment's Classroom template was configured, on the
-course org's side, not something caused by anything in this repo or by my
-GitHub username's casing.
-
-I could rename the GitHub repo myself (GitHub redirects the old name/URL, so
-the existing clone and remote keep working), but decided not to: the repo was
-provisioned for me rather than created by me, and I have no visibility into
-whether the course's roster tracking or any grading tooling keys off the
-exact literal repo name rather than following a redirect. Renaming it
-unilaterally risks my crit7 submission going untracked on their end for a
-purely cosmetic fix on mine. Leaving the name as-is and flagging it to course
-staff is the lower-risk path, so that's what I did.
