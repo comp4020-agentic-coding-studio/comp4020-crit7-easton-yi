@@ -36,6 +36,8 @@ COPY --from=build /app/node_modules /app/node_modules
 COPY --from=build /app/dist /app/dist
 # the committed migrations, applied at boot (see src/lib/db.ts)
 COPY --from=build /app/drizzle /app/drizzle
+# the committed timetable dataset, read at request time (see src/lib/server/dataset.ts)
+COPY --from=build /app/data /app/data
 
 ENV HOST=0.0.0.0
 ENV PORT=4321
