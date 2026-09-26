@@ -14,16 +14,16 @@
   },
   "courses": [
     {
-      "id": "comp1100",
-      "code": "COMP1100",
-      "title": "Introduction to Programming and Algorithms",
+      "id": "comp4680",
+      "code": "COMP4680",
+      "title": "Advanced Topics in Machine Learning",
       "activityGroups": [
         {
-          "id": "comp1100-lecture",
+          "id": "comp4680-lecture",
           "label": "Lecture",
           "options": [
             {
-              "id": "comp1100-lecture-only",
+              "id": "comp4680-lecture-only",
               "label": "Lecture (all students)",
               "meetings": [
                 { "weekday": 1, "startMinute": 600, "endMinute": 660, "location": "Manning Clark Centre T1", "mode": "in-person" },
@@ -33,25 +33,25 @@
           ]
         },
         {
-          "id": "comp1100-tutorial",
+          "id": "comp4680-tutorial",
           "label": "Tutorial",
           "options": [
             {
-              "id": "comp1100-tutorial-a",
+              "id": "comp4680-tutorial-a",
               "label": "Tutorial A",
               "meetings": [
                 { "weekday": 2, "startMinute": 720, "endMinute": 780, "location": "CSIT N101", "mode": "in-person" }
               ]
             },
             {
-              "id": "comp1100-tutorial-b",
+              "id": "comp4680-tutorial-b",
               "label": "Tutorial B",
               "meetings": [
                 { "weekday": 3, "startMinute": 840, "endMinute": 900, "location": "CSIT N102", "mode": "in-person" }
               ]
             },
             {
-              "id": "comp1100-tutorial-c",
+              "id": "comp4680-tutorial-c",
               "label": "Tutorial C",
               "meetings": [
                 { "weekday": 4, "startMinute": 540, "endMinute": 600, "location": "CSIT N103", "mode": "in-person" }
@@ -62,16 +62,16 @@
       ]
     },
     {
-      "id": "comp2100",
-      "code": "COMP2100",
-      "title": "Software Design Methodologies",
+      "id": "comp4712",
+      "code": "COMP4712",
+      "title": "Compiler Construction",
       "activityGroups": [
         {
-          "id": "comp2100-lecture-a",
+          "id": "comp4712-lecture-a",
           "label": "Lecture A",
           "options": [
             {
-              "id": "comp2100-lecture-a-only",
+              "id": "comp4712-lecture-a-only",
               "label": "Lecture A (all students)",
               "meetings": [
                 { "weekday": 1, "startMinute": 780, "endMinute": 840, "location": "Copland G030", "mode": "in-person" }
@@ -80,11 +80,11 @@
           ]
         },
         {
-          "id": "comp2100-lecture-b",
+          "id": "comp4712-lecture-b",
           "label": "Lecture B",
           "options": [
             {
-              "id": "comp2100-lecture-b-only",
+              "id": "comp4712-lecture-b-only",
               "label": "Lecture B (all students)",
               "meetings": [
                 { "weekday": 4, "startMinute": 780, "endMinute": 840, "location": "Copland G030", "mode": "in-person" }
@@ -93,25 +93,25 @@
           ]
         },
         {
-          "id": "comp2100-tutorial",
+          "id": "comp4712-tutorial",
           "label": "Tutorial",
           "options": [
             {
-              "id": "comp2100-tutorial-a",
+              "id": "comp4712-tutorial-a",
               "label": "Tutorial A",
               "meetings": [
                 { "weekday": 2, "startMinute": 600, "endMinute": 660, "location": "CSIT N201", "mode": "in-person" }
               ]
             },
             {
-              "id": "comp2100-tutorial-b",
+              "id": "comp4712-tutorial-b",
               "label": "Tutorial B",
               "meetings": [
                 { "weekday": 3, "startMinute": 660, "endMinute": 720, "location": "CSIT N202", "mode": "in-person" }
               ]
             },
             {
-              "id": "comp2100-tutorial-c",
+              "id": "comp4712-tutorial-c",
               "label": "Tutorial C",
               "meetings": [
                 { "weekday": 5, "startMinute": 540, "endMinute": 600, "location": "CSIT N203", "mode": "in-person" }
@@ -122,16 +122,16 @@
       ]
     },
     {
-      "id": "comp3610",
-      "code": "COMP3610",
-      "title": "Principles of Programming Languages",
+      "id": "comp4450",
+      "code": "COMP4450",
+      "title": "Computing R&D Methods",
       "activityGroups": [
         {
-          "id": "comp3610-lecture",
+          "id": "comp4450-lecture",
           "label": "Lecture",
           "options": [
             {
-              "id": "comp3610-lecture-only",
+              "id": "comp4450-lecture-only",
               "label": "Lecture (all students)",
               "meetings": [
                 { "weekday": 2, "startMinute": 840, "endMinute": 900, "location": "Hanna Neumann 1010", "mode": "in-person" },
@@ -141,11 +141,11 @@
           ]
         },
         {
-          "id": "comp3610-lab",
+          "id": "comp4450-lab",
           "label": "Lab",
           "options": [
             {
-              "id": "comp3610-lab-a",
+              "id": "comp4450-lab-a",
               "label": "Lab A (Tue + Thu)",
               "meetings": [
                 { "weekday": 2, "startMinute": 900, "endMinute": 1020, "location": "CSIT Lab 1", "mode": "in-person" },
@@ -153,7 +153,7 @@
               ]
             },
             {
-              "id": "comp3610-lab-b",
+              "id": "comp4450-lab-b",
               "label": "Lab B (Wed + Fri)",
               "meetings": [
                 { "weekday": 3, "startMinute": 900, "endMinute": 1020, "location": "CSIT Lab 2", "mode": "in-person" },
@@ -165,16 +165,16 @@
       ]
     },
     {
-      "id": "comp4610",
-      "code": "COMP4610",
-      "title": "Machine Perception",
+      "id": "comp3242",
+      "code": "COMP3242",
+      "title": "Deep Learning",
       "activityGroups": [
         {
-          "id": "comp4610-lecture-a",
+          "id": "comp3242-lecture-a",
           "label": "Lecture A",
           "options": [
             {
-              "id": "comp4610-lecture-a-only",
+              "id": "comp3242-lecture-a-only",
               "label": "Lecture A (all students)",
               "meetings": [
                 { "weekday": 1, "startMinute": 540, "endMinute": 600, "location": "Copland G015", "mode": "in-person" }
@@ -183,11 +183,11 @@
           ]
         },
         {
-          "id": "comp4610-lecture-b",
+          "id": "comp3242-lecture-b",
           "label": "Lecture B",
           "options": [
             {
-              "id": "comp4610-lecture-b-only",
+              "id": "comp3242-lecture-b-only",
               "label": "Lecture B (all students)",
               "meetings": [
                 { "weekday": 3, "startMinute": 540, "endMinute": 600, "location": "Copland G015", "mode": "in-person" }
@@ -196,18 +196,18 @@
           ]
         },
         {
-          "id": "comp4610-tutorial",
+          "id": "comp3242-tutorial",
           "label": "Tutorial",
           "options": [
             {
-              "id": "comp4610-tutorial-a",
+              "id": "comp3242-tutorial-a",
               "label": "Tutorial A",
               "meetings": [
                 { "weekday": 2, "startMinute": 660, "endMinute": 720, "location": "CSIT N301", "mode": "in-person" }
               ]
             },
             {
-              "id": "comp4610-tutorial-b",
+              "id": "comp3242-tutorial-b",
               "label": "Tutorial B",
               "meetings": [
                 { "weekday": 4, "startMinute": 900, "endMinute": 960, "location": "CSIT N302", "mode": "in-person" }

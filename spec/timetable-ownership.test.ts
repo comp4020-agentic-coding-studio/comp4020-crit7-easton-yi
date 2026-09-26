@@ -49,7 +49,7 @@ function makeSession() {
   };
 }
 
-const COURSE_IDS = ["comp1100", "comp2100", "comp3610"];
+const COURSE_IDS = ["comp4680", "comp4712", "comp4450"];
 
 describe("timetable ownership: session B cannot see or touch session A's plan (T19)", () => {
   it("hides another session's plan behind a plain 404, and refuses to update or delete it", async () => {

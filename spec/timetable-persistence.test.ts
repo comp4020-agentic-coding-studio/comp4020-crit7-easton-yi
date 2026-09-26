@@ -53,7 +53,7 @@ function makeSession() {
   };
 }
 
-const COURSE_IDS = ["comp1100", "comp2100", "comp3610"];
+const COURSE_IDS = ["comp4680", "comp4712", "comp4450"];
 
 async function solveFor(session: ReturnType<typeof makeSession>, preference: Preference = "campusDays") {
   const res = await session.postJson("/api/solve", {
