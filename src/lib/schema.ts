@@ -8,19 +8,6 @@ import { int, sqliteTable, text, unique } from "drizzle-orm/sqlite-core";
 // by hand: state on the deployed volume outlives every deploy, and the
 // migration trail is what keeps old state and new code compatible.
 
-// `messages` is the starter's guestbook table. It is dropped in the same
-// commit that removes the guestbook UI and routes, not here, so every
-// commit in between keeps `pnpm check` green.
-export const messages = sqliteTable("messages", {
-  id: int().primaryKey({ autoIncrement: true }),
-  body: text().notNull(),
-  createdAt: text("created_at")
-    .notNull()
-    .default(sql`(datetime('now'))`),
-});
-
-export type Message = typeof messages.$inferSelect;
-
 export const sessions = sqliteTable("sessions", {
   id: text().primaryKey(),
   tokenHash: text("token_hash").notNull(),

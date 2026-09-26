@@ -1,0 +1,39 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import { listPlans } from "../../lib/server/plan-service";
+import { getOrCreateSession } from "../../lib/server/session";
+import type { Preference } from "../../lib/timetable/types";
+
+const sessionId = getOrCreateSession(Astro.cookies);
+const summaries = listPlans(sessionId);
+
+const PREFERENCE_LABELS: Record<Preference, string> = {
+  campusDays: "Fewer campus days",
+  gaps: "Shorter gaps between classes",
+  early: "Fewer early starts",
+};
+---
+
+<Layout title="Saved plans">
+  <h1>Saved plans</h1>
+  {
+    summaries.length === 0 ? (
+      <p>
+        No saved plans yet. <a href="/">Build one</a>.
+      </p>
+    ) : (
+      <ul class="saved-plan-list">
+        {summaries.map((plan) => (
+          <li>
+            <div>
+              <a href={`/plans/${plan.id}/`}>{plan.name}</a>
+              <div class="tradeoff">
+                {PREFERENCE_LABELS[plan.preference]} · updated {new Date(plan.updatedAt).toLocaleString("en-AU")}
+              </div>
+            </div>
+          </li>
+        ))}
+      </ul>
+    )
+  }
+</Layout>

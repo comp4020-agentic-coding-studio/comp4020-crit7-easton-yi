@@ -1,0 +1,76 @@
+---
+import PlannerForm from "../../components/PlannerForm.astro";
+import Layout from "../../layouts/Layout.astro";
+import type { PlannerConfig } from "../../lib/client/planner";
+import { loadDataset } from "../../lib/server/dataset";
+import { getPlan } from "../../lib/server/plan-service";
+import { getOrCreateSession } from "../../lib/server/session";
+
+const sessionId = getOrCreateSession(Astro.cookies);
+const id = Astro.params.id;
+const plan = id ? getPlan(id, sessionId) : undefined;
+
+if (!plan) Astro.response.status = 404;
+
+const dataset = loadDataset();
+
+const config: PlannerConfig | null = plan
+  ? {
+      courses: dataset.courses,
+      initial: {
+        mode: "edit",
+        planId: plan.id,
+        expectedRevision: plan.revision,
+        name: plan.name,
+        courseIds: plan.courseIds,
+        commitments: plan.commitments,
+        locks: plan.locks,
+        preference: plan.preference,
+      },
+    }
+  : null;
+
+const configJson = config ? JSON.stringify(config).replace(/</g, "\\u003c") : "";
+---
+
+<Layout title={plan ? plan.name : "Plan not found"}>
+  {
+    plan && config ? (
+      <>
+        <h1>{plan.name}</h1>
+        {plan.datasetVersion !== dataset.manifest.version && (
+          <p class="status" data-tone="error">
+            This plan was saved against an older version of the timetable data — re-check before relying on it.
+          </p>
+        )}
+        <p class="data-notice">{dataset.manifest.notice}</p>
+        <div id="planner-root">
+          <PlannerForm
+            courses={dataset.courses}
+            initialCourseIds={config.initial.courseIds}
+            initialCommitments={config.initial.commitments}
+            initialPreference={config.initial.preference}
+            initialName={config.initial.name}
+          />
+        </div>
+        <script type="application/json" id="planner-config" set:html={configJson} is:inline />
+        <script>
+          import { initPlanner } from "../../lib/client/planner";
+
+          const configEl = document.getElementById("planner-config");
+          const root = document.getElementById("planner-root");
+          if (configEl?.textContent && root instanceof HTMLElement) {
+            initPlanner(root, JSON.parse(configEl.textContent));
+          }
+        </script>
+      </>
+    ) : (
+      <>
+        <h1>Plan not found</h1>
+        <p>
+          This plan doesn't exist, or belongs to a different session. <a href="/plans/">Back to saved plans</a>.
+        </p>
+      </>
+    )
+  }
+</Layout>

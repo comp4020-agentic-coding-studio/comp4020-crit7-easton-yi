@@ -1,0 +1,108 @@
+---
+import type { Commitment, Course, Preference, Weekday } from "../lib/timetable/types";
+
+export interface Props {
+  courses: Course[];
+  initialCourseIds: string[];
+  initialCommitments: Commitment[];
+  initialPreference: Preference;
+  initialName: string;
+}
+
+const { courses, initialCourseIds, initialCommitments, initialPreference, initialName } = Astro.props;
+
+const WEEKDAYS: [Weekday, string][] = [
+  [1, "Monday"],
+  [2, "Tuesday"],
+  [3, "Wednesday"],
+  [4, "Thursday"],
+  [5, "Friday"],
+  [6, "Saturday"],
+  [7, "Sunday"],
+];
+
+const PREFERENCES: [Preference, string][] = [
+  ["campusDays", "Fewer campus days"],
+  ["gaps", "Shorter gaps between classes"],
+  ["early", "Fewer early starts"],
+];
+
+function formatMinute(minute: number): string {
+  const h = Math.floor(minute / 60);
+  const m = minute % 60;
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+}
+---
+
+<fieldset>
+  <legend>Courses</legend>
+  <ul class="course-list" id="course-list">
+    {
+      courses.map((course) => (
+        <li>
+          <label>
+            <input type="checkbox" name="course" value={course.id} checked={initialCourseIds.includes(course.id)} />
+            {course.code} — {course.title}
+          </label>
+        </li>
+      ))
+    }
+  </ul>
+  <p class="hint">Select 3–4 courses to compare timetables.</p>
+</fieldset>
+
+<fieldset>
+  <legend>Must satisfy</legend>
+  <ul class="commitment-list" id="commitment-list">
+    {
+      initialCommitments.map((commitment) => (
+        <li data-commitment-id={commitment.id}>
+          <span>
+            {commitment.label}: {WEEKDAYS[commitment.weekday - 1][1]} {formatMinute(commitment.startMinute)}–{formatMinute(commitment.endMinute)}
+          </span>
+          <button type="button" class="danger remove-commitment" data-commitment-id={commitment.id}>
+            Remove
+          </button>
+        </li>
+      ))
+    }
+  </ul>
+  <div class="add-commitment">
+    <label for="commitment-label">Label</label>
+    <input id="commitment-label" placeholder="e.g. Work shift" />
+    <label for="commitment-weekday">Day</label>
+    <select id="commitment-weekday">
+      {WEEKDAYS.map(([value, label]) => <option value={value}>{label}</option>)}
+    </select>
+    <label for="commitment-start">From</label>
+    <input id="commitment-start" type="time" value="09:00" />
+    <label for="commitment-end">To</label>
+    <input id="commitment-end" type="time" value="10:00" />
+    <button type="button" id="add-commitment" class="secondary">Add block</button>
+  </div>
+</fieldset>
+
+<fieldset>
+  <legend>What matters most?</legend>
+  <ul class="preference-list" id="preference-list">
+    {
+      PREFERENCES.map(([value, label]) => (
+        <li>
+          <label>
+            <input type="radio" name="preference" value={value} checked={value === initialPreference} />
+            {label}
+          </label>
+        </li>
+      ))
+    }
+  </ul>
+</fieldset>
+
+<div class="plan-name-field">
+  <label for="plan-name">Plan name</label>
+  <input id="plan-name" value={initialName} maxlength="200" placeholder="e.g. My semester 2 plan" />
+</div>
+
+<p class="status" id="planner-status" tabindex="-1" aria-live="polite"></p>
+<div id="repair-suggestions"></div>
+<div class="results" id="plan-cards"></div>

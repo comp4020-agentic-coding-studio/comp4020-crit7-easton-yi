@@ -1,40 +1,386 @@
+:root {
+  --bg: #ffffff;
+  --ink: #1a1a1a;
+  --muted: #5a5a5a;
+  --border: #d8d8d8;
+  --accent: #0b5fff;
+  --danger: #b3261e;
+  --surface: #f6f7f9;
+
+  /* One accent per course, assigned by selection order (data-course-index 0-3). */
+  --course-0: #0b5fff;
+  --course-1: #b3261e;
+  --course-2: #0f7b3d;
+  --course-3: #8a3ea0;
+}
+
+* {
+  box-sizing: border-box;
+}
+
 body {
   margin: 0;
-  padding: 2rem;
+  padding: 1.5rem;
   font-family: system-ui, sans-serif;
-  line-height: 1.6;
-  color: #1a1a1a;
+  line-height: 1.5;
+  color: var(--ink);
+  background: var(--bg);
 }
 
 main {
-  max-width: 40rem;
+  max-width: 64rem;
   margin: 0 auto;
 }
 
-a {
-  color: #0b5fff;
+h1 {
+  font-size: 1.6rem;
 }
 
-form {
+a {
+  color: var(--accent);
+}
+
+nav[aria-label="site"] {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-block-end: 1.5rem;
+  padding-block-end: 0.75rem;
+  border-block-end: 1px solid var(--border);
+}
+
+nav[aria-label="site"] a {
+  text-decoration: none;
+  font-weight: 600;
+}
+
+nav[aria-label="site"] a:hover {
+  text-decoration: underline;
+}
+
+.data-notice {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 0.4rem;
+  padding: 0.75rem 1rem;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+fieldset {
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  padding: 1rem;
+  margin: 1.25rem 0;
+}
+
+legend {
+  font-weight: 600;
+  padding-inline: 0.4rem;
+}
+
+.course-list,
+.preference-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.course-list label,
+.preference-list label {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+
+.commitment-list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.commitment-list li {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.add-commitment {
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
   align-items: center;
-  margin-block: 1.5rem;
 }
 
-input {
-  flex: 1;
-  min-width: 12rem;
-  padding: 0.4rem 0.6rem;
+input,
+select,
+button {
   font: inherit;
+}
+
+input,
+select {
+  padding: 0.35rem 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 0.3rem;
 }
 
 button {
-  padding: 0.4rem 1rem;
-  font: inherit;
+  padding: 0.4rem 0.9rem;
+  border: 1px solid var(--accent);
+  border-radius: 0.3rem;
+  background: var(--accent);
+  color: white;
+  cursor: pointer;
 }
 
-#messages {
-  padding-inline-start: 1.2rem;
+button.secondary {
+  background: white;
+  color: var(--accent);
+}
+
+button.danger {
+  border-color: var(--danger);
+  background: white;
+  color: var(--danger);
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.status {
+  margin: 1rem 0;
+  font-weight: 600;
+}
+
+.status[data-tone="error"] {
+  color: var(--danger);
+}
+
+.repair-candidates {
+  list-style: none;
+  padding: 0;
+  margin: 0.5rem 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.results {
+  display: grid;
+  gap: 1.25rem;
+  margin-top: 1.5rem;
+}
+
+@media (min-width: 60rem) {
+  .results {
+    grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr));
+  }
+}
+
+.plan-card {
+  border: 1px solid var(--border);
+  border-radius: 0.6rem;
+  padding: 1rem;
+  opacity: 0;
+  animation: plan-card-in 0.2s ease-out forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .plan-card {
+    animation: none;
+    opacity: 1;
+  }
+}
+
+@keyframes plan-card-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.25rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.plan-card h3 {
+  margin-block-start: 0;
+}
+
+.plan-card .tradeoff {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.metrics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1.5rem;
+  margin: 0.75rem 0;
+  padding: 0;
+}
+
+.metrics div {
+  display: flex;
+  flex-direction: column;
+}
+
+.metrics dt {
+  font-size: 0.75rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.metrics dd {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.selection-list {
+  list-style: none;
+  padding: 0;
+  margin: 0.5rem 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.selection-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  border-inline-start: 4px solid var(--course-color, var(--border));
+  padding-inline-start: 0.5rem;
+}
+
+.selection-list button {
+  padding: 0.15rem 0.5rem;
+  font-size: 0.8rem;
+}
+
+/* Week grid: desktop/wide comparison view. Hidden on narrow screens in
+   favour of the day-agenda list built from the same data. */
+.week-grid {
+  --row-height: 1.4rem;
+  display: grid;
+  grid-template-columns: 3.5rem repeat(var(--day-count, 5), 1fr);
+  border: 1px solid var(--border);
+  border-radius: 0.4rem;
+  overflow: hidden;
+  font-size: 0.8rem;
+}
+
+.week-grid__head {
+  grid-row: 1;
+  padding: 0.25rem;
+  text-align: center;
+  font-weight: 600;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+
+.week-grid__hour {
+  color: var(--muted);
+  padding-inline-end: 0.3rem;
+  text-align: end;
+  border-top: 1px solid var(--border);
+}
+
+.week-grid__meeting {
+  background: color-mix(in srgb, var(--course-color, var(--accent)) 18%, white);
+  border: 1px solid var(--course-color, var(--accent));
+  border-radius: 0.3rem;
+  padding: 0.15rem 0.3rem;
+  margin: 1px;
+  overflow: hidden;
+}
+
+.week-grid__meeting strong {
+  display: block;
+}
+
+.week-grid__meeting--block {
+  background: repeating-linear-gradient(45deg, var(--surface), var(--surface) 6px, white 6px, white 12px);
+  border-color: var(--muted);
+  border-style: dashed;
+  color: var(--muted);
+}
+
+.day-agenda {
+  display: none;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.day-agenda h4 {
+  margin: 0 0 0.25rem;
+}
+
+.day-agenda ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.day-agenda li {
+  border-inline-start: 4px solid var(--course-color, var(--border));
+  padding-inline-start: 0.5rem;
+}
+
+@media (max-width: 40rem) {
+  .week-grid {
+    display: none;
+  }
+
+  .day-agenda {
+    display: flex;
+  }
+}
+
+.save-form {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.saved-plan-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.saved-plan-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 0.4rem;
+  padding: 0.6rem 0.9rem;
+  flex-wrap: wrap;
 }
