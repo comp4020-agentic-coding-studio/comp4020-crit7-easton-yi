@@ -15,6 +15,7 @@ mkdirSync(dirname(path), { recursive: true });
 
 const client = new Database(path);
 client.pragma("journal_mode = WAL");
+client.pragma("foreign_keys = ON");
 
 export const db = drizzle(client);
 

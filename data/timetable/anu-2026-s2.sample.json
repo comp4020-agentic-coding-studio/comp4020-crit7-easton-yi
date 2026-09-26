@@ -1,0 +1,221 @@
+{
+  "manifest": {
+    "datasetId": "anu-2026-s2-sample",
+    "version": "2026-s2.1",
+    "kind": "synthetic",
+    "term": "2026 Semester 2",
+    "timezone": "Australia/Sydney",
+    "teachingWeeks": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+    "sourceUrl": null,
+    "reviewedAt": "2026-09-26",
+    "reviewedBy": "student self-review (synthetic fixture, no ANU Web Publisher export available yet)",
+    "notice": "Planning data only. Confirm class availability and allocation in ANU MyTimetable.",
+    "notes": "Course codes are real ANU codes for plausibility; meeting times, locations and activity structure are fabricated for this Crit 7 prototype and do not reflect any actual timetable. Replace by running `pnpm timetable:import` once a real Web Publisher export is placed under data/source/."
+  },
+  "courses": [
+    {
+      "id": "comp1100",
+      "code": "COMP1100",
+      "title": "Introduction to Programming and Algorithms",
+      "activityGroups": [
+        {
+          "id": "comp1100-lecture",
+          "label": "Lecture",
+          "options": [
+            {
+              "id": "comp1100-lecture-only",
+              "label": "Lecture (all students)",
+              "meetings": [
+                { "weekday": 1, "startMinute": 600, "endMinute": 660, "location": "Manning Clark Centre T1", "mode": "in-person" },
+                { "weekday": 3, "startMinute": 600, "endMinute": 660, "location": "Manning Clark Centre T1", "mode": "in-person" }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "comp1100-tutorial",
+          "label": "Tutorial",
+          "options": [
+            {
+              "id": "comp1100-tutorial-a",
+              "label": "Tutorial A",
+              "meetings": [
+                { "weekday": 2, "startMinute": 720, "endMinute": 780, "location": "CSIT N101", "mode": "in-person" }
+              ]
+            },
+            {
+              "id": "comp1100-tutorial-b",
+              "label": "Tutorial B",
+              "meetings": [
+                { "weekday": 3, "startMinute": 840, "endMinute": 900, "location": "CSIT N102", "mode": "in-person" }
+              ]
+            },
+            {
+              "id": "comp1100-tutorial-c",
+              "label": "Tutorial C",
+              "meetings": [
+                { "weekday": 4, "startMinute": 540, "endMinute": 600, "location": "CSIT N103", "mode": "in-person" }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "comp2100",
+      "code": "COMP2100",
+      "title": "Software Design Methodologies",
+      "activityGroups": [
+        {
+          "id": "comp2100-lecture-a",
+          "label": "Lecture A",
+          "options": [
+            {
+              "id": "comp2100-lecture-a-only",
+              "label": "Lecture A (all students)",
+              "meetings": [
+                { "weekday": 1, "startMinute": 780, "endMinute": 840, "location": "Copland G030", "mode": "in-person" }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "comp2100-lecture-b",
+          "label": "Lecture B",
+          "options": [
+            {
+              "id": "comp2100-lecture-b-only",
+              "label": "Lecture B (all students)",
+              "meetings": [
+                { "weekday": 4, "startMinute": 780, "endMinute": 840, "location": "Copland G030", "mode": "in-person" }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "comp2100-tutorial",
+          "label": "Tutorial",
+          "options": [
+            {
+              "id": "comp2100-tutorial-a",
+              "label": "Tutorial A",
+              "meetings": [
+                { "weekday": 2, "startMinute": 600, "endMinute": 660, "location": "CSIT N201", "mode": "in-person" }
+              ]
+            },
+            {
+              "id": "comp2100-tutorial-b",
+              "label": "Tutorial B",
+              "meetings": [
+                { "weekday": 3, "startMinute": 660, "endMinute": 720, "location": "CSIT N202", "mode": "in-person" }
+              ]
+            },
+            {
+              "id": "comp2100-tutorial-c",
+              "label": "Tutorial C",
+              "meetings": [
+                { "weekday": 5, "startMinute": 540, "endMinute": 600, "location": "CSIT N203", "mode": "in-person" }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "comp3610",
+      "code": "COMP3610",
+      "title": "Principles of Programming Languages",
+      "activityGroups": [
+        {
+          "id": "comp3610-lecture",
+          "label": "Lecture",
+          "options": [
+            {
+              "id": "comp3610-lecture-only",
+              "label": "Lecture (all students)",
+              "meetings": [
+                { "weekday": 2, "startMinute": 840, "endMinute": 900, "location": "Hanna Neumann 1010", "mode": "in-person" },
+                { "weekday": 5, "startMinute": 840, "endMinute": 900, "location": "Hanna Neumann 1010", "mode": "in-person" }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "comp3610-lab",
+          "label": "Lab",
+          "options": [
+            {
+              "id": "comp3610-lab-a",
+              "label": "Lab A (Tue + Thu)",
+              "meetings": [
+                { "weekday": 2, "startMinute": 900, "endMinute": 1020, "location": "CSIT Lab 1", "mode": "in-person" },
+                { "weekday": 4, "startMinute": 900, "endMinute": 1020, "location": "CSIT Lab 1", "mode": "in-person" }
+              ]
+            },
+            {
+              "id": "comp3610-lab-b",
+              "label": "Lab B (Wed + Fri)",
+              "meetings": [
+                { "weekday": 3, "startMinute": 900, "endMinute": 1020, "location": "CSIT Lab 2", "mode": "in-person" },
+                { "weekday": 5, "startMinute": 900, "endMinute": 1020, "location": "CSIT Lab 2", "mode": "in-person" }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "comp4610",
+      "code": "COMP4610",
+      "title": "Machine Perception",
+      "activityGroups": [
+        {
+          "id": "comp4610-lecture-a",
+          "label": "Lecture A",
+          "options": [
+            {
+              "id": "comp4610-lecture-a-only",
+              "label": "Lecture A (all students)",
+              "meetings": [
+                { "weekday": 1, "startMinute": 540, "endMinute": 600, "location": "Copland G015", "mode": "in-person" }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "comp4610-lecture-b",
+          "label": "Lecture B",
+          "options": [
+            {
+              "id": "comp4610-lecture-b-only",
+              "label": "Lecture B (all students)",
+              "meetings": [
+                { "weekday": 3, "startMinute": 540, "endMinute": 600, "location": "Copland G015", "mode": "in-person" }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "comp4610-tutorial",
+          "label": "Tutorial",
+          "options": [
+            {
+              "id": "comp4610-tutorial-a",
+              "label": "Tutorial A",
+              "meetings": [
+                { "weekday": 2, "startMinute": 660, "endMinute": 720, "location": "CSIT N301", "mode": "in-person" }
+              ]
+            },
+            {
+              "id": "comp4610-tutorial-b",
+              "label": "Tutorial B",
+              "meetings": [
+                { "weekday": 4, "startMinute": 900, "endMinute": 960, "location": "CSIT N302", "mode": "in-person" }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
