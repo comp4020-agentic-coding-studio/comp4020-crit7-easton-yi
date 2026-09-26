@@ -1,534 +1,534 @@
-# Weekwise — ANU 课表取舍规划器
+# Weekwise — ANU Timetable Trade-off Planner
 
 > **Current implementation boundary**
 >
 > This document records the wider product reasoning. For the current Crit 7 build, implement only the MVP defined in `../WEEKWISE_IMPLEMENTATION_PROMPT.md`: 3–4 preloaded courses, one Excel-to-normalized-data import path, unavailable time blocks, one selected ranking preference, comparison of up to three plans, and SQLite save/reload. Sections describing accounts, sharing, ICS, maps, broader course coverage or other later features are reference only.
 
 
-> 产品设计与实施规格 v1.0 · 2026-09-26 · Australia/Sydney
+> Product design and implementation spec v1.0 · 2026-09-26 · Australia/Sydney
 >
-> 目标：把课表选择做成一个能理解、能调整、能保存的决策过程。
+> Goal: turn timetable selection into a decision process that can be understood, adjusted, and saved.
 >
-> 本文件是完整规划与建议采用的实施基线，本轮交付不包含应用实现。本文明确区分 Crit 7 目标、缩减版本与后续扩展。当前未检查项目仓库，所有目录和接口须在保留现有 starter 的前提下落地。
+> This document is the full plan and the recommended implementation baseline; this round of delivery does not include the app implementation. It clearly distinguishes the Crit 7 goal, the reduced version, and later expansion. The repository has not yet been inspected at the time of writing, so all directories and interfaces must be grounded in the existing starter once it is.
 
-## 阅读路线
+## Reading path
 
-- 判断这个产品值不值得做：§1–4。
-- 看用户具体怎么使用：§5–8。
-- 理解排课是否算得对：§9–12。
-- 交给 coding agent 实施：§13–18、§24。
-- 控制进度并准备 crit：§19–23。
-- 查证依据、已完成验证与剩余未知：§25–27。
+- To judge whether the product is worth building: §1–4.
+- To see exactly how users use it: §5–8.
+- To understand whether the scheduling math is correct: §9–12.
+- To hand off to a coding agent for implementation: §13–18, §24.
+- To manage progress and prepare for the crit: §19–23.
+- To check sources, completed verification, and remaining unknowns: §25–27.
 
-## 1. 产品决定：让学生掌握取舍
+## 1. Product decision: let students own the trade-off
 
-**产品名：Weekwise。** 工作名称，可在实现前调整一次。英文副标题：Make room for your week. 中文主文案：这周，也要留给自己。
+**Product name: Weekwise.** A working name, adjustable once before implementation. English subtitle: Make room for your week. Chinese tagline: This week, save some for yourself.
 
-核心任务：学生给出需要上的课、必须保留的时间和最看重的排课目标，系统找到无冲突的组合，展示各组合的代价，并保存选择。
+Core task: the student states which courses they need, which time slots must be kept free, and which scheduling goal matters most; the system finds conflict-free combinations, shows the cost of each, and saves the choice.
 
-核心承诺：
+Core promises:
 
-1. 所有推荐都满足已声明的硬条件。
-2. 每个推荐理由都能追溯到课程时间或一个明确的计算结果。
-3. 没有可行方案时，给出经过重新计算验证的调整建议。
-4. 保存后再次打开，恢复相同的数据版本、课程、选择和个人条件。
+1. Every recommendation satisfies the stated hard constraints.
+2. Every recommendation's reasoning can be traced to course timing or an explicit computed result.
+3. When no feasible plan exists, offer an adjustment suggestion that has been verified by recomputation.
+4. Reopening after saving restores the same data version, courses, selections, and personal constraints.
 
-**推荐理由是计算结果；界面的“推荐”只代表符合用户选择的排序目标。** 不引入无法解释的 92 分、AI 满意度或“最佳人生课表”。
+**The reasoning behind a recommendation is a computed result; the UI's "recommended" only means it ranks first under the user's chosen sort goal.** No unexplainable 92-point score, "AI satisfaction," or "best-life timetable" is introduced.
 
-### 1.1 为什么它成立
+### 1.1 Why this is worth building
 
-四门课可能分别有几组 tutorial/lab。单独选择一个合适的班次并不困难；困难的是一个选择会影响其余课程、出勤天数和整周的空档。学生需要比较整个组合。
+Four courses may each have several tutorial/lab groups. Picking a suitable section for one course in isolation isn't hard; the hard part is that one choice affects every other course, the number of days on campus, and gaps across the whole week. Students need to compare whole combinations.
 
-希望保留的三个体验瞬间：
+Three experience moments worth preserving:
 
-- “原来少来一天，要接受周一的早课。”
-- “锁定这节 lab 后，周五就没法完全空出来。”
-- “解除这一个条件就能恢复可行方案，我知道该改什么了。”
+- "Turns out coming in one day less means accepting an early class on Monday."
+- "Once I lock in this lab, Friday can't be fully free anymore."
+- "Releasing just this one constraint restores a feasible plan — now I know exactly what to change."
 
-### 1.2 已核对的现有系统能力
+### 1.2 Verified capabilities of existing systems
 
-ANU 的 MyTimetable 已提供生成规划、切换活动、保存多个方案和查看特定周等功能。因此，本项目的价值应通过个人偏好、直接比较和无解后的调整体验来证明。当前没有证据支持“ANU 完全没有课表规划器”或“官方系统没有任何优化功能”这样的宣传。[S3]
+ANU's MyTimetable already provides plan generation, swapping activities, saving multiple plans, and viewing specific weeks. So this project's value must be demonstrated through personal preferences, direct comparison, and the experience of adjusting after an infeasible result. There is currently no evidence to support claiming "ANU has no timetable planner at all" or "the official system has no optimization features whatsoever." [S3]
 
-公共 Web Publisher 是教学活动的官方查看入口。它显示的班次不一定对每个学生开放，因此 Weekwise 的时间可行性不能被表述为选班成功或有名额。[S4]
+The public Web Publisher is the official viewing entry point for teaching activities. The sections it shows are not necessarily open to every student, so Weekwise's time feasibility must not be described as successfully enrolling in a section or having a place available. [S4]
 
-### 1.3 最短的产品定位
+### 1.3 Shortest product positioning statement
 
 > Weekwise helps ANU students compare feasible timetable plans around their commitments, understand the trade-offs, and save the week they choose.
 
-这是一段产品介绍草案，不是已做过用户研究后得出的结论。
+This is a draft product pitch, not a conclusion drawn from completed user research.
 
-## 2. 对用户的理解与需要验证的假设
+## 2. Understanding users and assumptions to verify
 
-| 用户场景 | 具体任务 | 产品应提供的帮助 |
+| User scenario | Concrete task | What the product should help with |
 |---|---|---|
-| 通勤学生 | 减少为了单独一节课往返学校 | 比较课程到校天数 |
-| 有研究或兼职安排的学生 | 保留确定的不可用时段 | 将个人安排作为硬条件 |
-| 不喜欢早课的学生 | 避免过早开始 | 比较早课数量，并解释无法避免的早课 |
-| 已选好部分班次的学生 | 在现有选择上调整其余课程 | 锁定活动、重排剩余活动 |
-| 新学期提前规划的学生 | 先做几个备选，之后去官方系统选班 | 保存命名方案，并保留班次来源和适用学期 |
+| Commuting student | Reduce trips to campus for a single class | Compare number of days on campus across courses |
+| Student with research or part-time work commitments | Keep confirmed unavailable time blocks | Treat personal commitments as hard constraints |
+| Student who dislikes early classes | Avoid starting too early | Compare number of early classes, and explain unavoidable early classes |
+| Student who has already chosen some sections | Adjust the remaining courses around existing choices | Lock activities, re-solve the remaining activities |
+| Student planning ahead for a new semester | Draft a few options first, then go pick sections in the official system later | Save named plans, and retain section source and applicable semester |
 
-你的研究和课程时间协调可作为设计动机，但实际经历应由你本人确认后写入 PROCESS.md。不能把推测的痛点写成已观察到的事实。
+Your own research and course-timing coordination can serve as design motivation, but actual experience should be confirmed by yourself and written into PROCESS.md. Do not write assumed pain points into the document as observed facts.
 
-初始验证只需要两名同学，每人约十分钟：
+Initial validation only needs two students, about ten minutes each:
 
-1. 请他讲一次真实的排课取舍，记录当时用了什么工具。
-2. 让他在原型中保留半天时间，找到并保存一个可接受的方案。
-3. 问“为什么选它”“这张卡哪里让你误会”“你觉得这里的保存是否等于选班”。
+1. Ask them to describe one real scheduling trade-off, noting what tools they used at the time.
+2. Have them keep half a day free and find and save an acceptable plan in the prototype.
+3. Ask "why did you pick it," "where did this card mislead you," "do you think saving here is the same as enrolling in a section."
 
-若两人都认为少来校比少早课重要，可以调整默认优先级；无需为这点引入新的推荐模型。
+If both agree that fewer days on campus matters more than fewer early classes, the default priority can be adjusted; no new recommendation model is needed for this alone.
 
-## 3. 三层范围：按时做完，同时保留完整方向
+## 3. Three-tier scope: finish on time while keeping the full direction
 
-| 层级 | 交付内容 | 完成判据 |
+| Tier | Deliverable | Completion criteria |
 |---|---|---|
-| 基础完整流程 | 选课程、选择班次、后端校验、命名保存、刷新恢复 | 线上能完成一条真实数据读写路径 |
-| **Crit 7 目标版本** | 自动生成、三项偏好、个人不可用时段、锁定、比较、单条件无解修复、保存与恢复 | §19 的核心验收通过，Fly 上重启后方案仍在 |
-| 后续产品 | 多条件修复、步行时间、ICS、共享、账号、更多课程数据 | 每个功能有独立数据和测试依据后扩展 |
+| Basic end-to-end flow | Choose courses, choose sections, backend validation, named save, refresh-restore | A real data read/write path works live |
+| **Crit 7 target version** | Auto-generation, three preferences, personal unavailable time blocks, locking, comparison, single-constraint infeasibility repair, save and restore | Core acceptance in §19 passes; plan still present after a restart on Fly |
+| Later product | Multi-constraint repair, walking time, ICS, sharing, accounts, more course data | Each feature extended only once it has its own data and test evidence |
 
-**Crit 7 的内容规模：一个数据集、一个教学时段、3–4 门真实课程，每门课保留已核对的活动结构。** 如果这些课的组合极少，可另提供清楚标记的合成数据集用于解释取舍，不人为修改真实课表来制造效果。
+**Crit 7 scope: one dataset, one teaching period, 3–4 real courses, with each course's already-verified activity structure preserved.** If these courses' combinations turn out to be very few, a clearly labeled synthetic dataset may additionally be provided to illustrate trade-offs — the real timetable must not be artificially altered to manufacture an effect.
 
-首版保留：
+The first version keeps:
 
-- 本人会用到的课程选择。
-- 课程全部必需活动的正确建模。
-- 数据集覆盖日期内的冲突检测。
-- 完整枚举小规模组合、清楚排序。
-- 最多三个有区别的代表方案。
-- 编辑、命名保存、恢复、另存为、删除。
-- 课程数据来源与保存范围说明。
+- The course selection you yourself will actually use.
+- Correct modeling of every required activity for those courses.
+- Conflict detection covering the dataset's date range.
+- Full enumeration of small-scale combinations, clearly ranked.
+- Up to three distinct representative plans.
+- Editing, named save, restore, save-as, delete.
+- A statement of course-data provenance and save scope.
 
-以下项目排在核心版本之后：复杂拖拽、真实学校登录、自动抢位、实时名额、双人社交排课、全校课程爬虫、地图导航、考试排期、LLM 聊天框。它们都需要额外接口或规则，会改变当前交付规模。
+The following are deferred past the core version: complex drag-and-drop, real school login, automatic seat-grabbing, live seat counts, two-person social scheduling, a school-wide course crawler, map navigation, exam scheduling, an LLM chat box. All of these need extra interfaces or rules and would change the current delivery scope.
 
-## 4. 四个产品原则
+## 4. Four product principles
 
-### 4.1 必须满足与尽量满足在界面上分开
+### 4.1 Separate "must satisfy" from "prefer to satisfy" in the UI
 
-“周三下午不能上课”会排除组合；“尽量少早课”只影响顺序。界面分别称为“必须满足”和“最看重什么”。
+"Can't have class Wednesday afternoon" excludes combinations; "prefer fewer early classes" only affects ordering. The UI calls these "Must satisfy" and "What matters most" respectively.
 
-### 4.2 先展示用户的一周，再展示控制面板
+### 4.2 Show the user's week before the control panel
 
-打开应用就能看到课程、可行方案和课表。使用样例只需一次操作；首次进入不先要求注册、输入全部经历或读长说明。
+Opening the app should immediately show courses, feasible plans, and a timetable. Using the sample data should take a single action; first entry should not require signing up, entering full history, or reading a long explanation first.
 
-### 4.3 比较具体代价
+### 4.3 Compare concrete costs
 
-显示天数、分钟、早课节数；切换方案时说明相对已设定的比较基准变了多少。无差异时显示“这些指标相同，班次选择不同”。
+Show days, minutes, number of early classes; when switching plans, state how much has changed relative to the comparison baseline that was set. When there is no difference, show "these metrics are the same, only the sections differ."
 
-### 4.4 每一次放宽条件由用户触发
+### 4.4 Every relaxation of a constraint is user-triggered
 
-系统可以建议解除锁定或放开某段时间，但必须在用户选择该建议后再修改条件。没有解时也保留原始输入，提供撤销。
+The system may suggest releasing a lock or opening up a time block, but must only change the constraint after the user selects that suggestion. When there is no solution, the original input is still preserved, with undo available.
 
-## 5. 信息架构与页面
+## 5. Information architecture and pages
 
-| 路由 | 作用 | 首要动作 |
+| Route | Purpose | Primary action |
 |---|---|---|
-| `/` | 主规划工作区；同时承担产品入口 | 开始规划／载入示例 |
-| `/plans/` | 当前浏览器身份保存的方案 | 重新打开 |
-| `/plans/[id]/` | 从数据库载入一个方案，继续编辑 | 保存修改／另存为 |
-| `/about-data/` | 数据来源、覆盖日期、使用限制、版本 | 查看官方来源 |
-| `/readme/` | 满足 starter 的 README 内容合同 | 阅读项目说明 |
+| `/` | Main planning workspace; also serves as the product entry point | Start planning / load sample |
+| `/plans/` | Plans saved under the current browser identity | Reopen |
+| `/plans/[id]/` | Load one plan from the database, continue editing | Save changes / save as |
+| `/about-data/` | Data source, coverage dates, usage limits, version | View official source |
+| `/readme/` | Satisfies the starter's README content contract | Read project description |
 
-不增加与主任务无关的 landing page、排行榜、个人主页或管理仪表盘。
+Do not add a landing page, leaderboard, personal profile, or admin dashboard unrelated to the core task.
 
-### 5.1 桌面布局
+### 5.1 Desktop layout
 
-- 顶栏：产品名、规划课表、已保存、数据说明。
-- 工作区标题：当前数据集／学期、数据核对时间。
-- 左栏约 240px：课程、必须满足、排序目标。
-- 主栏：结果数量、代表方案卡、变化解释、周课表、保存栏。
-- 活动详情：在课表下方或侧边展开，提供查看其他班次与锁定。
+- Top bar: product name, plan timetable, saved, data notes.
+- Workspace header: current dataset/semester, data verification timestamp.
+- Left column, about 240px: courses, must-satisfy constraints, sort goal.
+- Main column: result count, representative plan cards, change explanation, weekly timetable, save bar.
+- Activity detail: expands below the timetable or in a side panel, offering a view of other sections and locking.
 
-首版避免四栏并排。已有一个完整周课表时，不再用第二张缩略课表重复同一信息。
+The first version avoids a four-column layout. Once there is already a full weekly timetable, don't repeat the same information in a second thumbnail timetable.
 
-### 5.2 手机布局
+### 5.2 Phone layout
 
-窄屏改为三段纵向流程：条件摘要 → 方案选择 → 按天的课程列表。
+On narrow screens, switch to a three-step vertical flow: constraint summary → plan selection → day-by-day course list.
 
-课程列表使用完整日期、开始与结束时间、课程代码、活动组和地点。手机上的核心任务不依赖缩小到难以点击的七列网格。
+The course list uses the full date, start and end time, course code, activity group, and location. The core task on mobile does not depend on shrinking things into an unclickable seven-column grid.
 
-“修改条件”展开同一组控件；保存按钮在课表后面。宽屏与窄屏共用状态和计算结果，不维护两套排课逻辑。
+"Edit constraints" expands the same set of controls; the save button sits after the timetable. Wide and narrow layouts share the same state and computed results — there is no separate scheduling logic maintained for each.
 
-## 6. 从第一次打开到保存的完整流程
+## 6. The full flow from first open to save
 
-### 6.1 开始
+### 6.1 Getting started
 
-首页提供“试用示例课表”和“选择课程”。前者载入一个有取舍的合成 fixture，整页保留“模拟时段”标记。后者进入已核对的课程数据集。
+The home page offers "Try the sample timetable" and "Choose courses." The former loads a synthetic fixture with a built-in trade-off, and the whole page carries a "simulated time slot" label. The latter enters the already-verified course dataset.
 
-选择课程后，立即列出它的必需活动组。例如 Lecture A、Lecture B 和 Tutorial A 是三个组，不能按“选一个 lecture”遗漏其中之一。
+After choosing a course, its required activity groups are listed immediately. For example, Lecture A, Lecture B, and Tutorial A are three groups — the UI must not let the user pick "one lecture" and miss one of them.
 
-有不支持的跨组组合规则时，在生成前告诉用户该课程尚未完整支持。不能用不完整的课程结构生成看似正常的推荐。
+If a course has unsupported cross-group combination rules, tell the user before generation that the course is not yet fully supported. Never generate a plausible-looking recommendation from an incomplete course structure.
 
-### 6.2 添加固定安排
+### 6.2 Adding fixed commitments
 
-点击“添加不可用时段”，表单字段为：名称、星期、开始时间、结束时间、适用日期范围。首版默认覆盖当前数据集支持的日期。
+Clicking "Add unavailable time block" opens a form with fields: name, day of week, start time, end time, applicable date range. In the first version this defaults to covering the whole date range supported by the current dataset.
 
-例如：研究时间，周三，13:00–18:00。显示为灰色时间块和可编辑的小条目。
+Example: Research time, Wednesday, 13:00–18:00. It is shown as a gray time block with an editable entry.
 
-表单校验：开始早于结束；同日时段；名称长度 1–60；日期在数据覆盖范围内。首版跨午夜的个人安排需拆成两个同日时段。
+Form validation: start before end; same-day time range; name length 1–60; date within the data-coverage range. In the first version, a personal commitment that crosses midnight must be split into two same-day blocks.
 
-重叠的个人安排不会互相导致“课表无解”；它们只是不可用时间的并集。原始条目各自保留，便于编辑。
+Overlapping personal commitments don't cause a mutual "timetable infeasible" — they are simply combined into the union of unavailable time. The original entries are each kept separately, for ease of editing.
 
-### 6.3 调整排序目标
+### 6.3 Adjusting the sort goal
 
-默认“少来学校”。另外两项是“少课间空档”和“少早课”。用户可以设置早课阈值，默认 10:00。
+Default is "fewest days on campus." The other two options are "fewest gaps between classes" and "fewest early classes." The user can set the early-class threshold, defaulting to 10:00.
 
-界面说明“课程到校天数”只统计线下课程，个人研究／工作地点不在首版通勤计算中。“课间空档”是课程之间的原始时间差，未扣除个人安排；不用“浪费时间”来替用户下判断。
+The UI explains that "days on campus" only counts in-person classes; a personal study/work location is not part of the first-version commute calculation. "Gaps between classes" is the raw time difference between classes, not adjusted for personal commitments; the term "wasted time" is not used to make that judgment for the user.
 
-### 6.4 查看方案
+### 6.4 Viewing plans
 
-每张代表方案卡都有：
+Every representative plan card shows:
 
-- 方案 A/B/C 和选择依据，例如“按你的优先项”。
-- 课程到校天数／周。
-- 课间空档分钟数／周。
-- 早课节数／周。
-- 与当前比较基准的变化。
+- Plan A/B/C and the basis for its selection, e.g. "based on your priority."
+- Days on campus / week.
+- Minutes of gaps / week.
+- Number of early classes / week.
+- Change relative to the current comparison baseline.
 
-点击卡片更新课表，其他条件不变。高亮发生变化的活动，文字列出“Lab 从周五改到周二”。
+Clicking a card updates the timetable while other constraints stay unchanged. Changed activities are highlighted, with text like "Lab moved from Friday to Tuesday."
 
-若只有一个有区别的方案，就只显示一个；不复制成三个标签不同的推荐。
+If there is only one distinct plan, show only one — don't duplicate it into three differently labeled recommendations.
 
-### 6.5 锁定
+### 6.5 Locking
 
-点击活动，查看该组的可选班次。活动详情显示其所有会议时间、适用日期及来源说明。
+Clicking an activity shows the available sections for that group. The activity detail shows all its meeting times, applicable dates, and source notes.
 
-点击“固定这个班次”后，其他活动自动重算。每个锁定都有显式解除按钮。
+After clicking "Pin this section," other activities are automatically re-solved. Every lock has an explicit unlock button.
 
-原本就只有一个选项的必需活动使用“固定活动”标签，与用户主动设置的锁定区分。不能让用户误以为解锁固定 lecture 就能凭空产生另一节课。
+A required activity that only ever had one option uses a "Fixed activity" label, distinct from a lock the user set themselves. Users must not be led to believe that unlocking a fixed lecture could conjure up another class out of nowhere.
 
-### 6.6 保存
+### 6.6 Saving
 
-输入名称后点击“保存方案”；只有后端事务成功才显示“已保存”。按钮在提交期间禁用，失败后保留所有输入并提供重试。
+After entering a name, clicking "Save plan" — "Saved" is shown only once the backend transaction succeeds. The button is disabled while submitting; on failure, all input is kept and a retry is offered.
 
-新建保存与“另存为”创建独立方案。保存修改更新同一方案，并带版本号避免多标签页相互覆盖。
+A new save and "Save as" create an independent plan. Saving changes updates the same plan and carries a version number to prevent multiple tabs from overwriting each other.
 
-“已保存”页按修改时间展示，重新打开从服务器读取。第一版采用匿名浏览器身份，页面用一句话说明“这些方案关联当前浏览器；清除站点数据后可能无法找回”。
+The "Saved" page is listed by modification time, and reopening reads from the server. The first version uses an anonymous browser identity, with a single line of text explaining "these plans are tied to this browser; clearing site data may make them unrecoverable."
 
-### 6.7 返回官方系统
+### 6.7 Returning to the official system
 
-方案详情提供“在 MyTimetable 核对并选班”链接及所选活动列表。用“已保存规划”描述状态，不使用“已选上”“已分配”“有位”等缺乏数据支持的词。
+The plan detail page provides a "Verify and enroll in MyTimetable" link plus a list of the chosen activities. Use "saved plan" to describe the state — do not use words like "enrolled," "allocated," or "available," which the data does not support.
 
-## 7. 最值得打磨的状态：没有可行方案
+## 7. The state most worth polishing: no feasible plan
 
-必须区分四种情况：
+Four cases must be distinguished:
 
-| 情况 | 正确反馈 | 可提供的动作 |
+| Case | Correct feedback | Available action |
 |---|---|---|
-| 某组的每个选项都被个人条件排除 | 列出该组的选项及各自冲突时间 | 预览经过验证的放宽建议 |
-| 各组单独都有选项，但无法共同成立 | 说明活动之间组合冲突 | 查看具体冲突关系、解除某个锁定 |
-| 数据缺失或未知活动规则 | 当前数据不足以判断 | 补充／核对课程数据 |
-| 搜索达到计算上限 | 未完成全部搜索 | 减少课程／锁定部分活动后重试 |
+| Every option in some group is excluded by personal constraints | List that group's options and each one's conflicting time | Preview a verified relaxation suggestion |
+| Each group individually has options, but they can't all be satisfied together | Explain the combination conflict between activities | View the specific conflict relationship, unlock one lock |
+| Data is missing or activity rules are unknown | Current data is insufficient to determine | Add / verify course data |
+| Search hit its computation limit | Search not fully completed | Reduce courses / lock some activities and retry |
 
-**搜索未完成不能被报告成“没有可行课表”。**
+**An incomplete search must never be reported as "no feasible timetable."**
 
-首版无解修复流程：对每个用户添加的硬条件，单独移除一次并重新求解。如果恢复了可行解，才生成对应建议。
+First-version infeasibility-repair flow: for each hard constraint the user added, remove it one at a time and re-solve. Only generate the corresponding suggestion if doing so restores a feasible solution.
 
-示例文案：
+Example copy:
 
-> 固定的 Studio 在周三 15:30–17:00，与研究时间 13:00–18:00 重叠。
+> The locked Studio session is Wednesday 15:30–17:00, which overlaps with your research time 13:00–18:00.
 >
-> 解除 Studio 锁定 → 可恢复 18 个组合。
+> Unlock the Studio session → restores 18 combinations.
 >
-> 允许周三下午排课 → 可恢复 27 个组合。
+> Allow classes Wednesday afternoon → restores 27 combinations.
 
-上面的数量是文案格式示例，实际值必须来自当前数据重新计算；实现时不得硬编码。
+The numbers above are a copy-formatting example; the actual values must come from a fresh computation on the current data and must never be hardcoded in the implementation.
 
-用户点击建议后，更新相应条件，显示“已解除 Studio 锁定”与“撤销”。如果没有任何单项调整能恢复解，只说“需要同时调整多个条件”；Crit 7 不承诺找到最少修改组合。
+After the user clicks a suggestion, the corresponding constraint is updated, showing "Studio lock removed" and "Undo." If no single adjustment can restore a solution, just say "multiple constraints need to change together"; Crit 7 does not promise to find the minimal set of changes.
 
-## 8. 其他状态与具体文案
+## 8. Other states and specific copy
 
-| 状态 | 文案／行为 |
+| State | Copy / behavior |
 |---|---|
-| 没有选课 | 从一门课程开始。 |
-| 正在生成 | 正在比较班次组合…；已有结果标记为更新中 |
-| 条件改变，旧结果未更新 | 标记旧结果，暂时禁用保存 |
-| 只有一个解 | 当前条件下只有一套可行安排。 |
-| 某个偏好无法改进 | 所有可行方案都包含这节固定早课。仅在验证后使用 |
-| 保存中 | 正在保存… |
-| 保存失败 | 暂时没有保存成功，你的修改仍保留在此页面。 |
-| 方案版本冲突 | 另一标签页已修改此方案。可重新载入或将本页另存为。 |
-| 数据集较旧 | 这是按旧版本数据保存的方案；可查看原方案或使用新数据重新规划。 |
-| 非本人方案 | 找不到该方案。返回自己的方案列表 |
-| 真实名额未知 | 时间安排可行；选班资格和名额需在 MyTimetable 核对。 |
+| No courses selected | Start by adding a course. |
+| Generating | Comparing section combinations…; existing results marked as updating |
+| Constraints changed, old results not yet updated | Mark old results as stale, disable save temporarily |
+| Only one solution | Only one feasible arrangement exists under the current constraints. |
+| A preference can't be improved further | Every feasible plan includes this fixed early class. Use only after verification |
+| Saving | Saving… |
+| Save failed | Not saved yet — your changes are still on this page. |
+| Plan version conflict | Another tab has modified this plan. You can reload or save this page as a new plan. |
+| Dataset is outdated | This plan was saved against an older data version; you can view the original plan or replan with the new data. |
+| Not your plan | Plan not found. Return to your own plan list |
+| Real seat availability unknown | The timing is feasible; enrollment eligibility and seat availability must be verified in MyTimetable. |
 
-错误消息应出现在相关控件或结果区域附近，并使用可被辅助技术读到的状态提示。
+Error messages should appear near the relevant control or result area, and use status hints that assistive technology can read.
 
-## 9. 时间与活动的领域模型
+## 9. Domain model for time and activities
 
-先把学校的排课单位表达正确，算法才有意义。
+The school's scheduling units need to be represented correctly before the algorithm means anything.
 
-### 9.1 四层关系
+### 9.1 Four-level relationship
 
-课程开设（offering）→ 必需活动组（activity group）→ 可选班次（option）→ 实际发生的课（occurrence）。
+Course offering → required activity group → selectable option → actual occurrence.
 
-例如一门课：
+For example, one course:
 
-- Lecture A：必须参加，有一个班次。
-- Lecture B：必须参加，有一个班次。
-- Tutorial A：三个可选班次，选一个。
-- 某个 Lab 班次：包含周二和周四的两次实验，这两次必须一起选。
+- Lecture A: mandatory, has one section.
+- Lecture B: mandatory, has one section.
+- Tutorial A: three selectable sections, choose one.
+- A particular Lab section: contains two lab sessions, Tuesday and Thursday, which must be chosen together.
 
-一个 option 可以包含多个 occurrence。这防止只选择同一 lab 的一半。
+An option can contain multiple occurrences. This prevents choosing only half of the same lab.
 
-### 9.2 首版时间表示
+### 9.2 First-version time representation
 
-- 日期：本地日历日期 `YYYY-MM-DD`。
-- 时间：当地午夜起的整数分钟。
-- 时区：`Australia/Sydney`；Canberra 与本项目涉及的悉尼时区规则一致。
-- 区间：左闭右开 `[start, end)`。
-- 课程相遇只在同一实际日期判断。
+- Date: local calendar date `YYYY-MM-DD`.
+- Time: integer minutes since local midnight.
+- Timezone: `Australia/Sydney`; Canberra follows the same timezone rules relevant to this project as Sydney.
+- Interval: half-open `[start, end)`.
+- Course meetings are only compared for overlap on the same actual date.
 
-10:00–11:00 与 11:00–12:00 不算时间重叠。没有步行数据时只承诺“无时间重叠”，不承诺能够及时走到下一间教室。
+10:00–11:00 and 11:00–12:00 do not count as a time overlap. Without walking-time data, only "no time overlap" is promised — not that there is enough time to actually walk to the next room.
 
-### 9.3 日期覆盖与隔周课程
+### 9.3 Date coverage and fortnightly courses
 
-数据集显式记录覆盖的教学周及对应日期；生成阶段对整个支持日期集合校验，界面只显示用户选中的一周。
+The dataset explicitly records the teaching weeks it covers and their corresponding dates; the generation stage validates against the whole supported date set, while the UI only shows the week the user has selected.
 
-同一星期、同一钟点，但发生在不同周的课程可以共存。学期休假由数据集日期决定，不能把 Week 7 简单算成开学后第七个日历周。
+Classes on the same weekday and same hour, but occurring in different weeks, can coexist. Semester breaks are determined by the dataset's dates — Week 7 must not simply be computed as the seventh calendar week after semester start.
 
-**单周降级模式：** 如果未能核对多周数据，可只发布明确标记“仅检查某一周”的版本；标题、指标和保存数据都携带该周范围，不能仍宣称整学期无冲突。如后续先做单周原型，也必须采用这一标记。
+**Single-week fallback mode:** if multi-week data hasn't been verified, a version clearly labeled "only checked for one specific week" may be released instead; the title, metrics, and saved data must all carry that week's range, and it must not claim the whole semester is conflict-free. If a single-week prototype is built first, this labeling must also be used.
 
-### 9.4 活动资格和不支持规则
+### 9.4 Activity eligibility and unsupported rules
 
-每个 option 可以记录 `eligibility_note` 与 `availability_status`。公开数据中的“未知”不转换成“可分配”；已知对当前数据集适用人群不开放的班次不进入候选。
+Every option may record an `eligibility_note` and `availability_status`. "Unknown" in public data must not be converted into "assignable"; a section that is known to be closed to the current dataset's target population is not entered into the candidate pool.
 
-跨组的 stream 关联、co-taught 同一课堂、按名单强制分组等，需要明确建模。Crit 数据集优先选择没有这些规则的课程；无法避免时，将必须同选的活动打包为一个复合 option，再由人工核对。
+Cross-group stream linkages, co-taught shared sessions, roster-forced grouping, and similar rules need to be modeled explicitly. The Crit dataset should preferentially pick courses without these rules; where unavoidable, bundle the jointly-required activities into a single composite option and have a human verify it.
 
-同步线上课程也占用时间；异步材料不虚构时间。首版推荐数据集使用线下同步活动，使“课程到校天数”的含义明确；增加线上活动后须按下节定义处理。
+Synchronous online classes also occupy time; asynchronous materials do not have a fabricated time. The recommended first-version dataset uses in-person synchronous activities so that "days on campus" has an unambiguous meaning; once online activities are added, they must be handled per the definitions in the next section.
 
-## 10. 指标合同：每个数字怎样计算
+## 10. Metric contract: how every number is computed
 
-所有指标由服务器从最终选择的 occurrence 重新计算。前端不得提交一个总分让后端直接相信。
+All metrics are recomputed by the server from the final selected occurrences. The frontend must never submit a total score for the backend to simply trust.
 
-设支持教学周集合为 W。对每周计算，再取总和除以 |W|；排序比较整数总和，展示时才四舍五入。
+Let W be the set of supported teaching weeks. Compute per week, then take the sum divided by |W|; ranking compares integer sums, and rounding only happens at display time.
 
-| 指标 | 精确定义 | 展示方式 |
+| Metric | Precise definition | Display |
 |---|---|---|
-| 课程到校天数 | 每周至少有一项线下课程的日期数量 | 单周整数；多周均值保留一位小数 |
-| 课间空档 | 每天全部同步课程按时间排序，相邻课程之间的非负分钟差总和 | 分钟／教学周；详情可转小时分钟 |
-| 早课数量 | 开始时间严格小于阈值的同步 occurrence 数量 | 节／教学周；阈值默认 10:00 |
-| 最早开始时间 | 当前查看周中最早的课程开始时间 | 辅助说明，不作为独立排序目标 |
-| 最晚结束时间 | 当前查看周中最晚的课程结束时间 | 辅助说明 |
+| Days on campus | Number of dates per week with at least one in-person class | Whole number for a single week; average to one decimal place across multiple weeks |
+| Gaps between classes | Sum of the non-negative time differences between adjacent synchronous classes each day, sorted by time | Minutes / teaching week; detail view can convert to hours and minutes |
+| Number of early classes | Count of synchronous occurrences whose start time is strictly less than the threshold | Sessions / teaching week; threshold defaults to 10:00 |
+| Earliest start time | Earliest class start time in the week currently being viewed | Supplementary note, not used as an independent sort goal |
+| Latest end time | Latest class end time in the week currently being viewed | Supplementary note |
 
-规则补充：
+Additional rules:
 
-- 一天只有一节课，该日空档为 0；第一节之前和最后一节之后不算空档。
-- 周中没有课的一天不会增加空档。
-- 学校课程与个人安排有不同语义，个人安排不计为早课，也不自动抵扣课间空档。
-- 同步线上课程参与冲突和时间空档计算，不增加课程到校天数。
-- 不知道授课方式的数据必须补齐，或将指标改名为“有课天数”；不能猜成线下。
-- 多周汇总始终使用数据集明确列出的教学周，不能靠当前显示周推断。
+- A day with only one class has zero gap for that day; time before the first class and after the last class does not count as a gap.
+- A day with no classes does not add to the gap total.
+- School classes and personal commitments have different semantics — personal commitments do not count as early classes, nor do they automatically offset the gap total.
+- Synchronous online classes participate in conflict checking and gap calculations, but do not add to days-on-campus.
+- Data for which the mode of delivery is unknown must be filled in, or the metric renamed to "days with classes" — it must not be guessed as in-person.
+- Multi-week aggregation always uses the teaching weeks explicitly listed in the dataset; it must not be inferred from the currently displayed week.
 
-## 11. 求解、排序和结果解释
+## 11. Solving, ranking, and explaining results
 
-### 11.1 小规模精确求解
+### 11.1 Small-scale exact solving
 
-推荐使用 TypeScript 纯函数实现回溯枚举。4 门课、每门 2 个有选择的活动组、每组 3 个 option，原始组合为 3^8 = 6,561；这说明小规模可以尝试精确枚举，不代表已测量生产性能。
+Recommended approach: implement backtracking enumeration as pure TypeScript functions. With 4 courses, 2 activity groups per course that have choices, and 3 options per group, the raw combination count is 3^8 = 6,561 — this illustrates that exact enumeration is feasible at small scale, not that production performance has been measured.
 
-流程：
+Procedure:
 
-1. 校验数据集、选课列表、个人安排与锁定的引用。
-2. 汇总所有必需活动组。
-3. 每组只保留满足其锁定、资格和个人时段条件的 options。
-4. 为 option pairs 预计算 occurrence 冲突。
-5. 先处理可选项最少的组。
-6. 深度优先选择，发现冲突立即停止当前分支。
-7. 每个完整可行组合计算指标、活动签名和解释证据。
-8. 排序并选取有差异的代表方案。
+1. Validate the dataset, the selected course list, personal commitments, and lock references.
+2. Aggregate all required activity groups.
+3. For each group, keep only the options that satisfy its locks, eligibility, and personal time constraints.
+4. Precompute occurrence conflicts for option pairs.
+5. Process groups with the fewest options first.
+6. Depth-first selection, stopping the current branch immediately on conflict.
+7. For every complete feasible combination, compute metrics, an activity signature, and explanatory evidence.
+8. Rank and select distinct representative plans.
 
-支持的固定活动是只有一个 option 的组，同样参与求解。算法不能为了降低冲突，省略某个必需活动。
+A supported fixed activity is a group with only one option, and it still participates in solving. The algorithm must not omit a required activity just to reduce conflicts.
 
-### 11.2 计算预算
+### 11.2 Compute budget
 
-Crit 目标数据集建议控制在原始组合数不超过 50,000、每次搜索至多 200,000 个展开节点。具体值须在 Fly 实例上测量后确定；以上为初始上限建议。
+For the Crit target dataset, recommend keeping the raw combination count under 50,000 and at most 200,000 expanded nodes per search. The exact values must be determined by measuring on the Fly instance; the above are initial suggested caps.
 
-同时设置求解时间上限。响应包含 `complete`：
+Also set a time limit for solving. The response includes `complete`:
 
-- 搜索完成且 0 解：可以进入无解修复。
-- 搜索完成且有解：可以声称当前支持范围下已枚举全部组合。
-- 搜索中断且有解：显示已找到的部分方案，禁止声称全局最优或总数。
-- 搜索中断且 0 解：显示尚未完成检查。
+- Search completed with 0 solutions: infeasibility repair can proceed.
+- Search completed with solutions: it may be claimed that all combinations within the currently supported scope have been enumerated.
+- Search interrupted with solutions found: show the partial plans found; do not claim global optimality or a total count.
+- Search interrupted with 0 solutions: show that the check is not yet complete.
 
-对已经完整验证但来自部分搜索的方案允许保存；保存再验证其可行性，结果卡不称全局最优。
+Plans that have been fully verified but come from a partial search may still be saved; saving re-verifies feasibility, and the result card does not call it globally optimal.
 
-限制单次输入课程、个人时段和 occurrence 数量，避免公开站点上一条求解请求长时间占住唯一服务器。
+Limit the number of courses, personal time blocks, and occurrences per input request, to avoid a single solve request tying up the site's only server for a long time.
 
-### 11.3 排序规则
+### 11.3 Ranking rules
 
-首版采用词典序，主指标优先，次指标仅用于打破平手：
+The first version uses lexicographic order, with the primary metric taking priority and secondary metrics used only to break ties:
 
-| 用户选择 | 顺序 |
+| User's choice | Order |
 |---|---|
-| 少来学校 | 课程到校天数 → 课间空档 → 早课数量 → 稳定活动签名 |
-| 少课间空档 | 课间空档 → 课程到校天数 → 早课数量 → 稳定活动签名 |
-| 少早课 | 早课数量 → 课程到校天数 → 课间空档 → 稳定活动签名 |
+| Fewest days on campus | Days on campus → gaps between classes → number of early classes → stable activity signature |
+| Fewest gaps | Gaps between classes → days on campus → number of early classes → stable activity signature |
+| Fewest early classes | Number of early classes → days on campus → gaps between classes → stable activity signature |
 
-权衡很明确：在“少来学校”模式下，减少一天优先于减少任意数量的空档。通过其他代表方案让用户看到代价。后续用户研究若表明这种优先关系太强，再加入可解释的权重。
+The trade-off is explicit: in "fewest days on campus" mode, reducing one day takes priority over reducing any amount of gap time. Other representative plans let the user see the cost of that. If later user research shows this priority is too strong, an interpretable weighting can be added.
 
-### 11.4 最多三个代表方案
+### 11.4 Up to three representative plans
 
-1. 必须包含当前主排序的第一名。
-2. 再考虑其他两个排序的第一名。
-3. 按 option ID 集合去重；对三个指标完全相同的代表方案合并摘要。
-4. 如仍有空位，从非劣解中选指标不同且班次有变化的方案。
-5. 无足够差异时少显示几张；提供“查看其他组合”的后续入口即可。
+1. Must include the current primary sort's top result.
+2. Then consider the top result of the other two sort orders.
+3. Deduplicate by the option-ID set; if three representative plans have identical metrics on all three dimensions, merge their summaries.
+4. If slots remain, pick from the non-dominated solutions those with different metrics and changed sections.
+5. If there isn't enough difference, show fewer cards; a "view other combinations" follow-up entry point is enough.
 
-非劣解的含义：不存在另一方案在三项指标上都不差、且至少一项更好。它用于缩小比较面板，不意味着其他方案在个人未声明的偏好上没有价值。
+Meaning of non-dominated: no other plan is at least as good on all three metrics and strictly better on at least one. It's used to narrow the comparison panel — it does not mean other plans have no value on preferences the user hasn't stated.
 
-在首版小数据集中可以直接两两比较指标；增长后再优化，避免过早引入求解器依赖。
+In the small first-version dataset, metrics can be compared pairwise directly; optimize this only once the data grows, to avoid introducing a solver dependency prematurely.
 
-### 11.5 理由必须有证据
+### 11.5 Reasoning must be backed by evidence
 
-`same_primary_lower_secondary`：主指标相同，第二指标更低。
+`same_primary_lower_secondary`: primary metric is the same, secondary metric is lower.
 
-`tradeoff`：相对指定方案，少 1 天到校，多 90 分钟空档。
+`tradeoff`: relative to the specified plan, one fewer day on campus, 90 more minutes of gaps.
 
-`forced_meeting`：某个 occurrence 出现在所有可行解中。仅在完整枚举后才能写“无法避免”。
+`forced_meeting`: an occurrence that appears in every feasible solution. Only writable as "unavoidable" after a full enumeration.
 
-`blocked_option`：选项与个人时段的实际日期、交叠区间。
+`blocked_option`: the actual date and overlapping interval between an option and a personal time block.
 
-`restored_by_relaxation`：移除一个具体条件后，完整求解得到的方案数量。
+`restored_by_relaxation`: the number of plans obtained from a full re-solve after removing one specific constraint.
 
-不把 DFS 分支被剪掉多少次直接当成“多少个完整方案被这个条件排除”，也不声称多个原因的数量可以相加。
+Do not directly treat the number of branches pruned by DFS as "how many complete plans this constraint excluded," and do not claim that counts from multiple reasons can be added together.
 
-### 11.6 给条件修改一个稳定的状态模型
+### 11.6 A stable state model for constraint changes
 
-生成请求带本地递增 `requestSequence`。只有最后一条请求能更新画面；较早响应到达时丢弃。
+Generation requests carry a locally incrementing `requestSequence`. Only the latest request may update the display; earlier responses that arrive later are discarded.
 
-条件发生变化后清除“已保存当前修改”状态，保留最近已保存的服务器版本。旧结果更新期间禁用保存。
+Once a constraint changes, clear the "current changes saved" status while keeping the most recently saved server version. Save is disabled while old results are being updated.
 
-如果旧选中方案仍然可行，可保留它并提示存在新的排序首选；首次生成和用户主动更改主排序时，默认选中新的首选。此行为在前端测试中固定下来。
+If the previously selected plan is still feasible, it may be kept while noting that a new sort-order top choice exists; on first generation and whenever the user actively changes the primary sort order, the new top choice is selected by default. This behavior is fixed by frontend tests.
 
-## 12. 数据来源与准备方案
+## 12. Data sourcing and preparation plan
 
-### 12.1 已证实与未证实的边界
+### 12.1 Boundary between verified and unverified
 
-已打开官方 Web Publisher 2026 页面，确认它提供课程检索与教学活动查看入口。[S5]
+The official Web Publisher 2026 page has been opened, confirming it offers course search and teaching-activity viewing. [S5]
 
-本次公开页面读取没有获得你这几门课的完整实际活动数据，也没有证实一个可以直接依赖的官方公开 JSON API。因此实施计划以人工整理的小规模数据集为可执行路径，不把爬虫成功作为上线前提。
+This reading of the public page did not obtain the complete actual activity data for your courses, nor did it confirm a directly-dependable official public JSON API. So the implementation plan takes a manually curated small-scale dataset as the executable path, and does not treat scraper success as a launch precondition.
 
-### 12.2 数据获取顺序
+### 12.2 Data acquisition order
 
-1. 在官方 Web Publisher 选择当前学期及本人课程。
-2. 按活动组查看所有选项，核对日期范围、上课时间、地点及限制说明。
-3. 将数据整理为版本化 JSON；如使用 PDF 导出，人工逐项核对解析结果。
-4. 补入课程网站上的必需活动说明，保证必需组数量正确。
-5. 把整理好的数据通过一次性 seed/import 脚本装入 SQLite。
+1. In the official Web Publisher, select the current semester and your own courses.
+2. Check all options by activity group, verifying date ranges, class times, locations, and restriction notes.
+3. Organize the data into versioned JSON; if a PDF export is used, manually verify the parsed result item by item.
+4. Supplement with required-activity notes from course websites, to ensure the count of required groups is correct.
+5. Load the curated data into SQLite via a one-off seed/import script.
 
-首版不向普通学生开放任意课程 JSON 上传或后台数据编辑，减少与核心任务无关的界面工作。
+The first version does not let ordinary students upload arbitrary course JSON or edit backend data, to reduce UI work unrelated to the core task.
 
-### 12.3 每个数据集的 manifest
+### 12.3 Manifest per dataset
 
-必须有：`datasetId`、`version`、`kind: verified | synthetic`、学期、时区、覆盖日期、教学周起始日期列表、来源 URL、核对时间、核对者、适用课程／人群、已知限制、数据内容 hash。
+Must include: `datasetId`, `version`, `kind: verified | synthetic`, semester, timezone, coverage dates, list of teaching-week start dates, source URL, verification timestamp, verifier, applicable courses/population, known limitations, content hash.
 
-每个 option 保留其原始活动标识和来源说明。地点未知显示“未提供”，不编造教室。
+Each option keeps its original activity identifier and source note. An unknown location shows "not provided" — never invent a room.
 
-一个真实数据集内可以含合成数据的做法会使结果可信度混乱，故两类数据集分开选择。
+Mixing synthetic data into a real dataset would confuse the trustworthiness of the result, so the two kinds of dataset are kept separate.
 
-### 12.4 导入质量检查
+### 12.4 Import quality checks
 
-- ID 唯一且所有外键可解析。
-- 每门课程的必需活动组非空。
-- 每个活动组至少一个 option；每个 option 至少一个有效 occurrence。
-- occurrence 的日期属于覆盖集合，时间有效。
-- 同一 option 内的多个 occurrence 不互相冲突，除非被明确建模为同一共享活动。
-- 多部件活动必须全部包含。
-- 锁定只引用当前课程中的活动组。
-- 不识别的跨组限制会阻止该课程被标记为已支持。
+- IDs are unique and every foreign key resolves.
+- Every course's required activity groups are non-empty.
+- Every activity group has at least one option; every option has at least one valid occurrence.
+- Occurrence dates belong to the coverage set, and times are valid.
+- Multiple occurrences within the same option don't conflict with each other, unless explicitly modeled as the same shared activity.
+- Multi-part activities must be included in full.
+- Locks only reference activity groups within the current course.
+- Unrecognized cross-group restrictions prevent that course from being marked as supported.
 
-### 12.5 冻结版本
+### 12.5 Frozen version
 
-Crit 前冻结一个 dataset 版本，保存方案引用该版本。更新课程数据创建新版本；已保存方案仍能按旧数据完整打开。
+Freeze one dataset version before the Crit; saved plans reference that version. Updating course data creates a new version; already-saved plans can still be opened fully against the old data.
 
-不需要在 Crit 7 实现自动更新后的智能迁移。提供“使用新数据重新规划”即可，用户主动确认其新选择。
+There's no need to implement smart migration after automatic updates for Crit 7. Providing "replan with new data" is enough, with the user actively confirming their new selections.
 
-## 13. 数据库设计
+## 13. Database design
 
-以下是推荐的逻辑 schema，具体 Drizzle 定义须匹配仓库已安装版本。
+The following is the recommended logical schema; the concrete Drizzle definitions must match the version already installed in the repository.
 
-| 表 | 主要字段 | 约束／作用 |
+| Table | Key fields | Constraint / purpose |
 |---|---|---|
-| `datasets` | id, version, kind, term, timezone, covered_dates_json, teaching_weeks_json, source_manifest_json, content_hash | 内容版本不可变；JSON 必须经过 schema 校验 |
-| `offerings` | id, dataset_id, course_code, title | 同一数据集中课程代码唯一 |
-| `activity_groups` | id, offering_id, label, type | 每组要求恰好一个 option |
-| `options` | id, group_id, external_label, eligibility_note, mode | 描述可选班次 |
-| `occurrences` | id, option_id, date, start_minute, end_minute, location | 时间范围检查、索引 option_id 与 date |
-| `sessions` | id, token_hash, created_at, expires_at | 匿名浏览器身份；cookie 中放随机 token |
-| `plans` | id, session_id, dataset_id, name, preference_json, revision, created_at, updated_at | 所有权检查；revision 乐观并发控制 |
-| `plan_courses` | plan_id, offering_id | 复合主键；记录完整选课集合 |
-| `plan_selections` | plan_id, group_id, option_id, is_locked | 每方案每组唯一；保存完整选项与锁定状态 |
-| `commitments` | id, plan_id, label, weekday, start_minute, end_minute, applies_dates_json | 保存生成时使用的个人硬条件 |
+| `datasets` | id, version, kind, term, timezone, covered_dates_json, teaching_weeks_json, source_manifest_json, content_hash | Content version is immutable; JSON must pass schema validation |
+| `offerings` | id, dataset_id, course_code, title | Course code is unique within the same dataset |
+| `activity_groups` | id, offering_id, label, type | Each group requires exactly one option |
+| `options` | id, group_id, external_label, eligibility_note, mode | Describes a selectable section |
+| `occurrences` | id, option_id, date, start_minute, end_minute, location | Time-range checks; indexed by option_id and date |
+| `sessions` | id, token_hash, created_at, expires_at | Anonymous browser identity; a random token goes in the cookie |
+| `plans` | id, session_id, dataset_id, name, preference_json, revision, created_at, updated_at | Ownership check; optimistic concurrency via revision |
+| `plan_courses` | plan_id, offering_id | Composite primary key; records the complete set of chosen courses |
+| `plan_selections` | plan_id, group_id, option_id, is_locked | Unique per plan per group; stores the full option and lock state |
+| `commitments` | id, plan_id, label, weekday, start_minute, end_minute, applies_dates_json | Stores the personal hard constraints used at generation time |
 
-数据库共十张小表，由实际关系决定。无需微服务、消息队列或独立推荐服务。
+Ten small tables total, determined by the actual relationships. No microservices, message queue, or separate recommendation service are needed.
 
-### 13.1 必须保证的跨表关系
+### 13.1 Cross-table relationships that must be guaranteed
 
-- plan_courses 中的课程必须属于 plan.dataset_id。
-- plan_selections 的 group 必须属于该方案选择的课程。
-- option 必须属于对应 group。
-- 保存完成的方案必须覆盖选定课程的全部必需 group，且每组恰好一个 option。
-- 数据集删除不能级联抹掉已保存方案；发布的数据集保留。
+- Courses in plan_courses must belong to plan.dataset_id.
+- The group in plan_selections must belong to a course chosen by that plan.
+- The option must belong to its corresponding group.
+- A completed saved plan must cover every required group of the selected courses, exactly one option per group.
+- Deleting a dataset must not cascade-delete saved plans; published datasets are retained.
 
-能通过外键、唯一约束或复合外键表达的交给 SQLite；其余在同一服务端事务内检查。启用外键约束，并测试非法写入被拒绝。
+Whatever can be expressed via foreign keys, unique constraints, or composite keys is left to SQLite; everything else is checked within the same server-side transaction. Enable foreign-key constraints, and test that invalid writes are rejected.
 
-### 13.2 保存事务
+### 13.2 Save transaction
 
-1. 从 cookie 解析身份，校验请求来源与输入结构。
-2. 加载服务端数据集和 option 引用。
-3. 重新验证全部课程结构、冲突、个人条件和锁定。
-4. 新方案使用客户端预先生成的 UUID 作为资源 ID；已有方案检查 `revision`。
-5. 一个事务写入 plan、课程、选择和个人安排。
-6. 成功提交后返回新的 revision 和服务端计算的摘要。
+1. Parse identity from the cookie, validate the request origin and input structure.
+2. Load the server-side dataset and option references.
+3. Re-validate the entire course structure, conflicts, personal constraints, and locks.
+4. A new plan uses a client-pregenerated UUID as its resource ID; an existing plan checks `revision`.
+5. Write the plan, courses, selections, and personal commitments within a single transaction.
+6. On successful commit, return the new revision and a server-computed summary.
 
-重复新建请求使用同一 UUID：同身份同内容返回已创建结果；不同内容返回冲突。首次请求成功但响应丢失时，不重复生成两份方案。
+A repeated "create new" request with the same UUID: same identity and same content returns the already-created result; different content returns a conflict. If the first request succeeds but the response is lost, this must not result in two duplicate plans being created.
 
-### 13.3 匿名身份
+### 13.3 Anonymous identity
 
-使用足够随机的持久 cookie，服务端仅存 token 的 hash；生产 cookie 设置 HttpOnly、Secure、SameSite=Lax，建议 90 天有效期。
+Use a sufficiently random persistent cookie; the server only stores the hash of the token. In production, set the cookie HttpOnly, Secure, SameSite=Lax, with a recommended 90-day lifetime.
 
-所有方案查询、修改和删除都同时约束 plan ID 与 session ID。不可仅凭难猜的方案 UUID 认为安全。跨浏览器同步属于后续账号功能。
+Every plan query, modification, and deletion must be constrained on both plan ID and session ID simultaneously. A hard-to-guess plan UUID alone must not be treated as sufficient security. Cross-browser sync belongs to the later account feature.
 
-删除使用普通确认或可撤销设计，避免一次误触删除唯一方案；首版可用明确的确认对话框。无需引入注册邮件。
+Deletion uses a plain confirmation or an undoable design, to avoid accidentally deleting the only plan with a single click; a clear confirmation dialog is acceptable for the first version. No registration email is needed.
 
-## 14. 接口合同
+## 14. API contract
 
-推荐 REST 风格端点；沿用 starter 的服务端能力实现，不为了这些接口再引入另一套后端框架。
+REST-style endpoints are recommended; build on the starter's existing server capabilities rather than introducing another backend framework just for these endpoints.
 
-| 方法与路径 | 输入 | 输出 |
+| Method and path | Input | Output |
 |---|---|---|
-| `GET /api/datasets` | 无 | 支持的数据集摘要 |
-| `GET /api/datasets/:id/courses` | 可选检索字符串 | 课程与组摘要 |
+| `GET /api/datasets` | none | Summary of supported datasets |
+| `GET /api/datasets/:id/courses` | Optional search string | Course and group summaries |
 | `POST /api/solve` | datasetId, offeringIds, commitments, pins, preferences, requestSequence | complete, feasibleCount, representatives, metrics, explanations |
-| `POST /api/repair` | 与 solve 相同的条件 | 经验证的单条件修改与结果数量 |
-| `GET /api/plans` | cookie 身份 | 当前身份的方案列表 |
-| `PUT /api/plans/:uuid` | 新建 expectedRevision=0；修改传当前 revision；方案完整内容 | 已保存方案与新 revision |
-| `GET /api/plans/:uuid` | cookie 身份 | 完整方案及原数据集版本 |
-| `DELETE /api/plans/:uuid` | expectedRevision | 删除成功或版本冲突 |
+| `POST /api/repair` | Same constraints as solve | Verified single-constraint change and resulting count |
+| `GET /api/plans` | Cookie identity | Plan list for the current identity |
+| `PUT /api/plans/:uuid` | New: expectedRevision=0; edit: current revision; full plan content | Saved plan and new revision |
+| `GET /api/plans/:uuid` | Cookie identity | Full plan and its original dataset version |
+| `DELETE /api/plans/:uuid` | expectedRevision | Delete success or version conflict |
 
-solve 的 `feasibleCount` 只有在 `complete=true` 时表示总数；中断时使用 `foundCount`。
+solve's `feasibleCount` only represents a total when `complete=true`; when interrupted, use `foundCount` instead.
 
-生成返回 option IDs 与 occurrence 信息足够绘图，不返回整个学校数据集。后端不接受客户端声称某 option 无冲突、可分配或已通过资格核验。
+Generation returns option IDs and occurrence info sufficient for rendering, not the entire school dataset. The backend does not accept a client's claim that some option has no conflict, is assignable, or has passed eligibility checks.
 
-统一错误格式：`{ code, message, fieldErrors?, requestId }`。错误码至少覆盖 `INVALID_INPUT`、`UNSUPPORTED_DATA`、`VERSION_CONFLICT`、`NOT_FOUND`、`SEARCH_LIMIT`。
+Unified error format: `{ code, message, fieldErrors?, requestId }`. Error codes must cover at least `INVALID_INPUT`, `UNSUPPORTED_DATA`, `VERSION_CONFLICT`, `NOT_FOUND`, `SEARCH_LIMIT`.
 
-同步请求目标小于一秒；确切数值在小数据集和部署实例上测量。网络慢时依然有更新状态和请求顺序保护。
+Synchronous requests target under one second; exact figures should be measured on the small dataset and the deployed instance. When the network is slow, updating status and request-ordering protection must still hold.
 
-## 15. 前端与模块边界
+## 15. Frontend and module boundaries
 
-保持 Astro + starter 后端 + Drizzle + SQLite。已有 React/Svelte 等组件集成就沿用；没有时可用少量 TypeScript 管理交互，不为排课页额外堆一套状态管理框架。
+Keep Astro + starter backend + Drizzle + SQLite. If React/Svelte or similar component integration already exists, reuse it; if not, a small amount of TypeScript can manage interactions — don't stack an extra state-management framework onto the planner page just for this.
 
-建议模块职责：
+Suggested module responsibilities:
 
-| 模块 | 职责 | 不应承担 |
+| Module | Responsibility | Should not own |
 |---|---|---|
-| 数据校验 | JSON schema、活动结构与覆盖日期检查 | UI 绘制 |
-| 时间工具 | 日期相等、分钟区间、周归属 | 数据库查询 |
-| 求解器 | 输入已校验数据，输出可行组合 | Cookie、HTTP、HTML |
-| 指标与排序 | 数值、稳定排序、代表方案 | 随机推荐 |
-| 解释器 | 将证据映射为文案结构 | 自行捏造排课原因 |
-| 方案服务 | 所有权、事务、版本、校验 | 日历布局 |
-| 页面与组件 | 条件输入、比较、课表、保存 | 独立复制一份算法 |
+| Data validation | JSON schema, activity structure, and coverage-date checks | UI rendering |
+| Time utilities | Date equality, minute intervals, week membership | Database queries |
+| Solver | Takes validated input, outputs feasible combinations | Cookies, HTTP, HTML |
+| Metrics and ranking | Numeric values, stable sort, representative plans | Random recommendations |
+| Explainer | Maps evidence to copy structure | Making up scheduling reasons on its own |
+| Plan service | Ownership, transactions, versioning, validation | Calendar layout |
+| Pages and components | Constraint input, comparison, timetable, save | Duplicating the algorithm itself |
 
-建议目录仅用于讨论，实施前读取实际仓库：
+The suggested directory layout is for discussion only; check the actual repository before implementing:
 
 ```text
 src/lib/timetable/{types,validate,time,solve,metrics,rank,explain}.ts
@@ -540,164 +540,164 @@ data/timetable/<dataset-version>.json
 spec/{planner,persistence,ownership}.test.ts
 ```
 
-从同一公共 solver 模块导出纯函数供单元测试使用；实际保存仍由服务端复核。先检查 starter 已有的 schema、迁移和身份能力，能复用就复用。
+Export pure functions from the same shared solver module for unit testing; actual saves are still re-verified by the server. Check the starter's existing schema, migrations, and identity capabilities first, and reuse them where possible.
 
-## 16. 视觉与交互规范
+## 16. Visual and interaction spec
 
-### 16.1 整体风格
+### 16.1 Overall style
 
-采用安静、清晰的学习工具风格：浅暖背景、深绿色主文字和操作、低饱和课程色。色彩帮助跟踪课程身份，不表示课程优劣。支持深色外观时单独核对文字对比。
+A quiet, clear study-tool style: light warm background, dark green as the primary text and action color, low-saturation course colors. Color helps track course identity, and does not indicate course quality. If a dark appearance is supported, verify text contrast separately.
 
-主界面使用英文可更方便 crit 同学体验；文案选择在实现第一天确定。本规划使用中文说明设计，产品界面的英文文案应在开工前统一确认，品牌名保持英文。
+Use English in the main UI to make it easier for crit classmates to try; copy choices should be finalized on the first day of implementation. This document uses Chinese to explain the design, but the product UI's English copy should be settled before work begins, with the brand name kept in English.
 
-### 16.2 字体与密度
+### 16.2 Typography and density
 
-正文 14–16px，辅助文字至少 12px，交互目标在触摸屏约 44px。时间和指标使用等宽数字。标题适度大，给周课表留出主要面积。
+Body text 14–16px, secondary text at least 12px, touch targets around 44px on touchscreens. Times and metrics use tabular (monospace) numerals. Headings are moderately large, leaving the main area for the weekly timetable.
 
-课程块必见：课程代码、开始时间、活动类型。点开后显示结束时间、日期、地点、其他班次及锁定状态；不会把所有内容挤到一个 45 分钟小方块中。
+A class block must show: course code, start time, activity type. Clicking it shows end time, date, location, other sections, and lock status — not everything crammed into one 45-minute-tall block.
 
-### 16.3 动作反馈
+### 16.3 Action feedback
 
-- 改条件：控件立即响应，结果区域显示更新状态。
-- 切方案：课程块位置变化有短动画，同时给文字差异。
-- 锁定：可见锁定标记与解除动作。
-- 修改未保存：顶部／保存栏显示“有未保存修改”。
-- 保存成功：显示服务端确认时间，不只弹出一闪而过的 toast。
+- Changing a constraint: controls respond immediately, the result area shows an updating state.
+- Switching plans: class blocks animate briefly to their new position, with accompanying text describing the difference.
+- Locking: a visible lock marker and unlock action.
+- Unsaved changes: the top bar / save bar shows "unsaved changes."
+- Save success: shows the server-confirmed timestamp, not just a fleeting toast.
 
-尊重 `prefers-reduced-motion`。动画是增强项，不能成为理解更新结果的唯一方式。
+Respect `prefers-reduced-motion`. Animation is an enhancement, not the only way to understand that results have updated.
 
-### 16.4 无障碍
+### 16.4 Accessibility
 
-一个页面一个 h1；有 nav 和 main；所有控件有 label；活动是可聚焦的按钮；键盘可完成课程选择、条件修改、方案切换和保存。
+One h1 per page; nav and main landmarks present; every control has a label; activities are focusable buttons; keyboard alone can complete course selection, constraint editing, plan switching, and saving.
 
-颜色之外用课程代码、活动名和锁定文字表达信息。动态结果数量使用 polite live region；表单错误关联输入。周课表同时有按天列表的等价访问方式。
+Information is conveyed with course code, activity name, and lock text in addition to color. Dynamic result counts use a polite live region; form errors are associated with their inputs. The weekly timetable has an equivalent day-by-day list view.
 
-控件重绘后保留操作焦点，不每次把键盘焦点送回页面开头。弹窗关闭后回到触发按钮。
+Keyboard focus is preserved across control re-renders, rather than being sent back to the top of the page every time. Closing a dialog returns focus to the button that triggered it.
 
-## 17. Fly.io 部署与持久化
+## 17. Fly.io deployment and persistence
 
-本项目按用户原本的 Fly.io 目标和课程 starter 部署，不迁移到其他托管平台。[S1]
+This project deploys per the user's original Fly.io target and the course starter, and does not migrate to another hosting platform. [S1]
 
-建议 Crit 配置为单应用进程、单 Fly Machine、单持久卷。SQLite 文件放在卷挂载目录，例如 `/data/weekwise.sqlite`；实际路径服从现有 starter 配置。
+Recommended Crit configuration: a single app process, a single Fly Machine, a single persistent volume. The SQLite file lives on the mounted volume directory, e.g. `/data/weekwise.sqlite`; the actual path follows the existing starter configuration.
 
-Fly 官方说明持久卷用于保存机器上的持久数据；部署镜像中的普通 SQLite 文件无法承担跨重新部署的持久化。[S6]
+Fly's own documentation states that a persistent volume is for saving data that persists on the machine; a plain SQLite file inside the deploy image cannot survive across redeploys. [S6]
 
-迁移需要访问挂载卷。Fly `release_command` 默认运行在没有持久卷的临时机器上，所以不能把本地 SQLite 卷的迁移随意放在那里。检查 starter 的启动脚本，在挂载后的应用启动阶段执行幂等迁移，再启动服务器。[S7]
+Migrations need access to the mounted volume. Fly's `release_command` runs by default on a temporary machine with no persistent volume, so migrations for a local SQLite volume must not simply be placed there. Check the starter's startup script, and run idempotent migrations during the app's startup phase after the volume is mounted, before starting the server. [S7]
 
-部署检查：
+Deployment checks:
 
-1. 数据库目录存在且当前进程可写。
-2. schema migration 有版本记录，重启不会重复破坏数据。
-3. seed 按数据集版本幂等导入，不覆盖用户方案。
-4. 外键启用；必要时用 WAL 与合理 busy timeout 处理小规模并发。
-5. 健康检查通过后再接受应用流量。
-6. 创建方案，刷新恢复；再执行一次受控进程／机器重启，确认方案仍在。
-7. 重新部署一次，确认旧方案与其数据集仍可打开。
+1. The database directory exists and is writable by the current process.
+2. Schema migrations are version-tracked, so a restart doesn't repeatedly re-break data.
+3. Seeding is idempotent per dataset version, and does not overwrite user plans.
+4. Foreign keys are enabled; use WAL and a reasonable busy timeout where needed for small-scale concurrency.
+5. Health checks pass before the app accepts traffic.
+6. Create a plan, refresh to restore it; then perform a controlled process/machine restart and confirm the plan is still there.
+7. Redeploy once, and confirm old plans and their datasets can still be opened.
 
-第 6、7 项是本项目可靠性目标，高于“只刷新仍存在”的最低可见验收。备份应采用 SQLite 的一致性备份方式；WAL 运行时不能只随意复制主数据库文件。
+Items 6 and 7 are this project's reliability goal, above the bare minimum of "still there after a refresh." Backups should use SQLite's consistent backup method — with WAL active, simply copying the main database file is not sufficient.
 
-上线前记录实际 Machine 数量，避免多个独立 SQLite 实例导致请求落到不同数据副本。Crit 前提前打开线上地址验证自动唤醒和正常响应。
+Before going live, record the actual number of Machines, to avoid multiple independent SQLite instances causing requests to land on different data copies. Open the live URL ahead of the crit to verify auto-wake and a normal response.
 
-## 18. 接近实现的状态转移
+## 18. Near-implementation state transitions
 
-| 当前状态 | 动作 | 下一状态／效果 |
+| Current state | Action | Next state / effect |
 |---|---|---|
-| empty | 添加课程 | solving |
-| ready | 改变硬条件 | solving，旧结果标记过期 |
-| solving | 最新响应有可行解 | ready |
-| solving | 完整搜索无解 | no_solution |
-| solving | 达到预算 | incomplete |
-| no_solution | 点击已验证修复 | 更新一个条件，进入 solving |
-| ready | 点击保存 | saving |
-| saving | 服务端事务成功 | saved，记录 revision |
-| saving | 网络／服务端失败 | ready_dirty，保留输入 |
-| saved | 改动课程或条件 | ready_dirty 或 solving |
-| saved | 打开已有方案 | 从服务器恢复，再按原数据校验 |
+| empty | Add a course | solving |
+| ready | Change a hard constraint | solving, old result marked stale |
+| solving | Latest response has a feasible solution | ready |
+| solving | Full search finds no solution | no_solution |
+| solving | Budget reached | incomplete |
+| no_solution | Click a verified repair | Updates the corresponding constraint, enters solving |
+| ready | Click save | saving |
+| saving | Server transaction succeeds | saved, revision recorded |
+| saving | Network / server failure | ready_dirty, input preserved |
+| saved | Course or constraint changed | ready_dirty or solving |
+| saved | Open an existing plan | Restored from the server, then re-validated against the original data |
 
-切换代表方案本身也会改变待保存的内容。首版不做隐式自动保存，避免把“比较过程中暂时点过的方案”直接覆盖正式选择。
+Switching the representative plan also changes what's pending to be saved. The first version has no implicit autosave, to avoid a plan someone was only briefly comparing overwriting their actual choice.
 
-## 19. 验收与测试合同
+## 19. Acceptance and test contract
 
-测试关注可能真正出错的行为，沿用 starter 现有的页面不变量和 README 检查。guestbook 测试是否退休，按仓库自身说明处理；不能为了绿灯删除仍然适用的测试。
+Tests focus on behavior that could genuinely go wrong, building on the starter's existing page invariants and README checks. Whether the guestbook test is retired follows the repository's own guidance — a still-applicable test must not be deleted just to get a green check.
 
-| ID | 场景 | 必须观察到的结果 |
+| ID | Scenario | Must-observe result |
 |---|---|---|
-| T01 | 相邻两课 10–11 与 11–12 | 时间检查允许共存 |
-| T02 | 两课在同一日期交叠 1 分钟 | 组合被排除 |
-| T03 | 相同星期时段但不同教学周 | 允许共存 |
-| T04 | 一个 lab option 包含两次课，其中一次冲突 | 整个 option 被排除 |
-| T05 | 一门课有 Lecture A 与 Lecture B | 两个必需组都出现在每个完整结果中 |
-| T06 | 不可用时段与课程部分交叠 | 组合被排除；边界相接允许 |
-| T07 | 两个个人不可用时段互相交叠 | 不凭此判定课表无解 |
-| T08 | 锁定合法 option | 所有结果包含它 |
-| T09 | 锁定与个人安排冲突 | 无解；至少一项确实有效的修复来自重新求解 |
-| T10 | 任意单项调整都不能恢复 | 不声称某一个按钮可以解决 |
-| T11 | 一组少量人工可列举的组合 | solver 的完整解集合与独立枚举结果一致 |
-| T12 | 修改排序目标 | 可行集合相同；排序按公开规则变化 |
-| T13 | 同一输入重复生成 | 签名、顺序与解释稳定 |
-| T14 | 三个代表排序产生同一个解 | 不制造三个重复推荐 |
-| T15 | 搜索中断 | 不显示“全部检查完／无解／全局最佳” |
-| T16 | 手工算好的指标 fixture | 天数、分钟、早课数完全一致 |
-| T17 | 提交缺一必需组的保存请求 | 服务端拒绝，数据库没有半份方案 |
-| T18 | 浏览器 A 保存，刷新 | 所有选择、条件、名称和数据集版本恢复 |
-| T19 | 浏览器 B 猜到 A 的方案 ID | 无法读取、更新或删除 |
-| T20 | 同一保存请求重复发送 | 不创建重复方案 |
-| T21 | 两标签页先后更新相同 revision | 第二个收到冲突，已有内容不被覆盖 |
-| T22 | 模拟保存失败 | 页面不显示已保存，用户输入仍在 |
-| T23 | 请求乱序返回 | 旧结果不覆盖新条件的结果 |
-| T24 | 保存后服务器重启／重新部署 | 方案仍可按原数据打开 |
-| T25 | 390px 宽屏幕与键盘操作 | 全部核心动作可完成，页面无整体横向溢出 |
-| T26 | 数据集含不支持的关联规则或缺失时间 | 明确拒绝／标记不支持，不输出完整可行承诺 |
-| T27 | 深链接打开 `/plans/:id/` | SSR／客户端初始化后内容正确，无仅内存依赖 |
-| T28 | `pnpm check` 与所有登记路由 | starter 适用合同通过，包括 `/readme/` |
+| T01 | Two adjacent classes, 10–11 and 11–12 | Time check allows coexistence |
+| T02 | Two classes overlap by 1 minute on the same date | Combination excluded |
+| T03 | Same weekday/time but different teaching weeks | Coexistence allowed |
+| T04 | A lab option contains two sessions, one of which conflicts | The whole option is excluded |
+| T05 | A course has Lecture A and Lecture B | Both required groups appear in every complete result |
+| T06 | A personal unavailable block partially overlaps a class | Combination excluded; touching boundaries are allowed |
+| T07 | Two personal unavailable blocks overlap each other | This alone must not be used to declare the timetable infeasible |
+| T08 | A valid option is locked | It appears in every result |
+| T09 | A lock conflicts with a personal commitment | No solution; at least one genuinely valid repair comes from re-solving |
+| T10 | No single adjustment can restore a solution | It's not claimed that any single button can fix it |
+| T11 | A small set of manually enumerable combinations | The solver's complete result set matches an independent enumeration |
+| T12 | Sort goal is changed | Feasible set is the same; ordering changes per the published rules |
+| T13 | Same input, regenerated | Signature, order, and explanations are stable |
+| T14 | Three sort orders produce the same solution | No fabricated triple of duplicate recommendations |
+| T15 | Search interrupted | No display of "fully checked / no solution / global best" |
+| T16 | A hand-computed metrics fixture | Days, minutes, early-class count all match exactly |
+| T17 | A save request missing one required group is submitted | Server rejects it; database has no half-saved plan |
+| T18 | Browser A saves, then refreshes | All selections, constraints, name, and dataset version are restored |
+| T19 | Browser B guesses browser A's plan ID | Cannot read, update, or delete it |
+| T20 | The same save request is sent twice | No duplicate plan is created |
+| T21 | Two tabs update the same revision in sequence | The second gets a conflict; existing content is not overwritten |
+| T22 | Simulated save failure | Page does not show "saved"; the user's input remains |
+| T23 | Requests return out of order | Old results do not overwrite results for newer constraints |
+| T24 | Server restarts / redeploys after saving | The plan can still be opened against the original data |
+| T25 | 390px-wide screen and keyboard-only operation | All core actions can be completed, no overall horizontal overflow |
+| T26 | Dataset contains an unsupported linkage rule or missing time | Explicitly refused / flagged unsupported, no full-feasibility claim is output |
+| T27 | Deep link opens `/plans/:id/` | Content is correct after SSR / client-side initialization, no memory-only dependency |
+| T28 | `pnpm check` and every registered route | Starter's applicable contract passes, including `/readme/` |
 
-T01–T16、T26 主要用纯函数测试；T17、T19–T21 用服务／API 测试；T18、T22–T25、T27–T28 用浏览器或部署检查。无需为每个图标、样式属性写一对一测试。
+T01–T16 and T26 are mainly tested with pure-function tests; T17 and T19–T21 with service/API tests; T18, T22–T25, T27–T28 with browser or deployment checks. There's no need for a one-to-one test for every icon or style property.
 
-### 19.1 性能目标
+### 19.1 Performance goals
 
-目标数据集上，普通改条件能在约一秒内得到反馈；记录本地与 Fly 的实际求解耗时和组合数量。先正确再衡量，未测量前不写“毫秒级”。
+On the target dataset, an ordinary constraint change should get feedback in roughly one second; record the actual solve time and combination count both locally and on Fly. Correctness first, then measurement — don't write "millisecond-level" before it's actually measured.
 
-若超过目标，优先减少数据集规模、预计算冲突、在求解时剪枝。只有测量显示主线程／服务进程阻塞时才引入 worker。
+If the target is exceeded, prioritize reducing dataset size, precomputing conflicts, and pruning during solving. Only introduce a worker once measurement shows the main thread / server process is actually blocked.
 
-## 20. 实施顺序与真实工时预算
+## 20. Implementation order and realistic time budget
 
-以下为建议的人类投入及 agent 协作预算，包含阅读结果、试用和修正；不是保证值，也不把模型运行速度当成全部开发时间。
+The following are suggested human-effort and agent-collaboration budgets, including reading results, trying things out, and fixing issues; they are not guarantees, and model runtime speed should not be treated as the entirety of development time.
 
-| 阶段 | 预算 | 可 review 的结果 | 进入下一阶段的条件 |
+| Phase | Budget | Reviewable output | Condition to move to next phase |
 |---|---:|---|---|
-| A. 仓库审阅与范围冻结 | 1–2h | 现有栈／迁移／部署／测试说明；功能清单 | starter 本身可运行，scope 明确 |
-| B. 数据模型与一条真实保存流程 | 4–6h | 一个真实课程数据集、手选方案、SQLite 保存／恢复、Fly 首次验证 | 刷新能恢复；没有数据结构缺口 |
-| C. 求解与指标 | 4–6h | 纯函数、人工 fixture、准确排序 | 核心数学合同通过 |
-| D. 主页面与比较体验 | 4–6h | 响应式工作区、选项、锁定、三张卡、保存列表 | 键盘和手机能完成流程 |
-| E. 无解修复与故障状态 | 2–3h | 单条件修复、保存失败、版本冲突反馈 | 不出现误导性成功／无解 |
-| F. 部署与 crit 证据 | 3–4h | 持久卷验证、pnpm check、PROCESS、reflection 证据、演示脚本 | 全部必要合同有证据 |
-| **合计** | **18–27h + 少量缓冲** | 完整 Crit 版本 | 基于熟悉 starter 的前提 |
+| A. Repo review and scope freeze | 1–2h | Notes on existing stack / migrations / deployment / tests; feature list | Starter itself runs, scope is clear |
+| B. Data model and one real save flow | 4–6h | A real course dataset, manually chosen plan, SQLite save/restore, first Fly verification | Refresh restores it; no data-structure gaps |
+| C. Solving and metrics | 4–6h | Pure functions, hand-checked fixtures, accurate ranking | Core math contract passes |
+| D. Main page and comparison experience | 4–6h | Responsive workspace, options, locking, three cards, saved list | Keyboard and phone can complete the flow |
+| E. Infeasibility repair and failure states | 2–3h | Single-constraint repair, save-failure, version-conflict feedback | No misleading success / no-solution states appear |
+| F. Deployment and crit evidence | 3–4h | Persistent-volume verification, pnpm check, PROCESS, reflection evidence, demo script | Evidence exists for every required contract |
+| **Total** | **18–27h + a small buffer** | Complete Crit version | Assumes familiarity with the starter |
 
-建议保留约 20% 缓冲。若真实可用时间显著少于此预算，使用下面的范围裁剪，不能用“让 agent 更快写完”替代验证。
+A buffer of about 20% is recommended. If actual available time is significantly less than this budget, use the scope-cutting order below — do not substitute "have the agent write faster" for verification.
 
-### 20.1 按日期安排
+### 20.1 Day-by-day schedule
 
-以 2026-09-26 周六开始、用户仍在 Liùrú 周三组为前提：
+Assuming a start on Saturday, September 26, 2026, with the user still in the Thursday tutorial group:
 
-- 周六 9 月 26 日：A + B 的主要部分。当天优先看到线上保存／恢复。
-- 周日 9 月 27 日：完成 B + C；课表数值有独立核对。
-- 周一 9 月 28 日：D；让两名同学试用后修正。
-- 周二 9 月 29 日：E + F，晚上冻结功能。
-- 周三 9 月 30 日：仅做线上复核和演示准备；目标 12:00 前最终核查完成。
+- Saturday Sep 26: main parts of A + B. Prioritize seeing an online save/restore working that day.
+- Sunday Sep 27: finish B + C; independently verify the timetable numbers.
+- Monday Sep 28: D; have two classmates try it and fix issues.
+- Tuesday Sep 29: E + F, freeze features that evening.
+- Wednesday Sep 30: only online re-checks and demo prep; aim to have final checks done before 12:00.
 
-官网列出 Liùrú 周三 15:30–17:00，cutoff 为 13:30；9 月 30 日是按当前 Week 8 安排推导的对应日期，提交前再次核对公告。C7 专页当前仍标 Draft。[S1][S2]
+The official site lists the tutorial slot as Wednesday 15:30–17:00 with a 13:30 cutoff; Sep 30 is the corresponding date derived from the current Week 8 schedule — re-verify against the announcement before submitting. The Crit 7 page is still marked Draft. [S1][S2]
 
-### 20.2 时间不足时怎样缩减
+### 20.2 How to cut scope when time is short
 
-依次移后：动画 → ICS → 多周界面切换 → “查看全部组合” → 多目标非劣解增强 → 单条件修复自动计数。
+Defer in this order: animations → ICS → multi-week view switching → "view all combinations" → multi-objective non-dominated-solution enhancement → single-constraint repair auto-counting.
 
-保留：课程必需结构、准确冲突、明确数据范围、至少一个可比较的排序、后端保存、刷新恢复、Fly 持久化与过程证据。
+Keep: the required activity structure for courses, accurate conflict detection, clearly stated data scope, at least one comparable sort order, backend save, refresh-restore, Fly persistence, and process evidence.
 
-若只核对了一周，明确发布单周版本；若多周数据已存在，则可以简化周切换界面，但算法仍检查全部覆盖日期。
+If only one week has been verified, clearly publish the single-week version; if multi-week data already exists, the week-switching UI can be simplified, but the algorithm must still check the entire covered date range.
 
-## 21. Commits 与人类决策记录
+## 21. Commits and human decision log
 
-建议按真实工作过程形成以下提交，而不是事后伪造提交历史：
+Suggested commits to form as work actually proceeds, not fabricated after the fact:
 
 1. document timetable scope and data contract
 2. add versioned timetable dataset and schema
@@ -708,120 +708,120 @@ T01–T16、T26 主要用纯函数测试；T17、T19–T21 用服务／API 测�
 7. explain infeasible plans and tested relaxations
 8. verify deployment persistence and document critique
 
-每次提交附一项可运行或可观察的结果。PROCESS.md 记录真实日期、输入依据、自己的判断、agent 的产出、具体修正及证据位置。
+Attach one runnable or observable result to each commit. PROCESS.md should record the real dates, the basis for inputs, your own judgment, the agent's output, specific corrections, and where the evidence lives.
 
-可讨论的设计决策：
+Design decisions worth discussing:
 
-- 为什么硬条件不能被悄悄放宽。
-- 为什么 option 必须可以包含多次课。
-- 为什么不能把旧 Timetable Viewer 当主要新数据接口。
-- 为什么不用单一加权“满意分”。
-- 为什么先发布少量可信课程数据。
-- 为什么保存需要服务端重新验证。
+- Why hard constraints must not be quietly relaxed.
+- Why an option must be allowed to contain multiple sessions.
+- Why the old Timetable Viewer should not be treated as the primary new data interface.
+- Why a single weighted "satisfaction score" is not used.
+- Why a small amount of trustworthy course data is published first.
+- Why saving requires server-side re-validation.
 
-反思文档只写实际发生的过程；本清单是观察和记录方向，不是可直接冒充经历的反思。
+The reflection document should record only what actually happened; this list is a set of things to observe and note, not something to be passed off directly as lived experience.
 
-## 22. Crit 演示脚本
+## 22. Crit demo script
 
-准备 90 秒主线和 30 秒备用证明。按实际可用演示时间调整。
+Prepare a 90-second main line and a 30-second backup proof. Adjust to the actual time available for the demo.
 
-| 时间 | 操作 | 要让观众看见的判断 |
+| Time | Action | Judgment the audience should see |
 |---|---|---|
-| 0–12 秒 | 展示课程与两个差异明显的方案 | 生活安排与课程组合之间有取舍 |
-| 12–30 秒 | 切“少来学校”与“少空档” | 每个推荐的代价可以解释 |
-| 30–45 秒 | 保留半天，锁定一个冲突班次 | 条件确实参与求解 |
-| 45–60 秒 | 点击经过验证的修复建议 | 系统帮助用户做下一步决定 |
-| 60–80 秒 | 命名保存，刷新，重新打开 | 核心流程经由后端持久化 |
-| 80–90 秒 | 一句话说明一次真实修正 | 你如何 directed、grounded、corrected |
+| 0–12s | Show the courses and two clearly different plans | There's a real trade-off between life commitments and course combinations |
+| 12–30s | Switch between "fewest days on campus" and "fewest gaps" | Every recommendation's cost can be explained |
+| 30–45s | Keep half a day free, lock a conflicting section | The constraints genuinely participate in solving |
+| 45–60s | Click a verified repair suggestion | The system helps the user decide the next step |
+| 60–80s | Name and save, refresh, reopen | The core flow is persisted through the backend |
+| 80–90s | One sentence on a real correction that happened | How you directed, grounded, and corrected |
 
-如果使用合成 fixture 演示取舍，开始时一句话说明；同时准备真实课程数据页面证明与本人 ANU 场景的联系。
+If a synthetic fixture is used to demo the trade-off, say so in one sentence at the start; also have a real-course-data page ready to prove the connection to your own actual ANU scenario.
 
-演示前检验：链接公开可访问、服务已唤醒、示例有至少两个不同指标组合、保存名称可区分、课表数据标签清楚。
+Pre-demo checks: the link is publicly reachable, the service is awake, the sample has at least two distinct metric combinations, saved plan names are distinguishable, and the timetable data label is clear.
 
-后台重启持久化的证据可提前准备，不必当着全组等待部署。录屏可以备份，但替代不了要求中的在线地址。
+Evidence of persistence across a backend restart can be prepared ahead of time — it doesn't need to be done live while the whole group waits for a deploy. A screen recording can serve as a backup, but it does not replace the requirement of a live URL.
 
-## 23. 后续增强：按价值排序
+## 23. Later enhancements, ranked by value
 
-| 次序 | 增强 | 前置条件 | 主要收益 |
+| Rank | Enhancement | Precondition | Main benefit |
 |---|---|---|---|
-| 1 | 与当前实际课表的差异比较 | 学生确认现有活动 | 明确改哪些班次就能得到新方案 |
-| 2 | 每组可选班次的影响预览 | 小规模完整解集合 | 点选前看到会减少多少可行组合 |
-| 3 | ICS 下载 | 日期、时区、UID 和更新规则验证 | 把已选规划带入个人日历 |
-| 4 | 两项条件的组合修复 | 单条件修复稳定，设搜索预算 | 处理更复杂无解情形 |
-| 5 | 可配置转场缓冲 | 用户可指定缓冲；地图估计有依据 | 减少背靠背上课压力 |
-| 6 | 登录与跨设备同步 | 真实用户需要、账号流程预算 | 长期保留多个学期的计划 |
-| 7 | 更多课程及持续更新 | 稳定的数据取得方式与维护人 | 扩大适用范围 |
+| 1 | Diff against the student's current actual timetable | Student confirms their existing activities | Clearly shows which sections to change to get the new plan |
+| 2 | Preview of each option's impact per group | Small, complete solution set | See how many feasible combinations would be lost before clicking |
+| 3 | ICS download | Date, timezone, UID, and update rules verified | Bring the chosen plan into a personal calendar |
+| 4 | Two-constraint combined repair | Single-constraint repair stable, search budget set | Handle more complex infeasible cases |
+| 5 | Configurable transition buffer | User can specify a buffer; map estimate has a basis | Reduce back-to-back class pressure |
+| 6 | Login and cross-device sync | Real user need, account-flow budget | Long-term retention of plans across multiple semesters |
+| 7 | More courses and ongoing updates | Stable data-acquisition method and a maintainer | Broaden applicable scope |
 
-步行时间第一步可以是用户定义统一缓冲，例如 10 分钟，明确称“预留转场时间”；不能把没有依据的数值叫作实际步行时间。增加缓冲后，T01 的时间重叠定义仍不变，另加转场约束测试。
+The first step for walking time can be a user-defined uniform buffer, e.g. 10 minutes, explicitly called "reserved transition time" — a number without a real basis must not be called actual walking time. After adding a buffer, T01's time-overlap definition stays unchanged; a separate transition-constraint test is added.
 
-ICS 必须处理 `Australia/Sydney` 的夏令时、正确的活动日期、稳定 UID 和转义；这项不适合在交付前最后半小时临时拼接字符串实现。
+ICS must handle `Australia/Sydney` daylight saving, correct activity dates, stable UIDs, and escaping; this is not something to hastily string-build in the last half hour before delivery.
 
-## 24. 可交给 coding agent 的执行合同
+## 24. Execution contract handoff for a coding agent
 
-以下内容可作为任务开头；将本文件和已有 Crit spec 一起交给 agent。
+The following can serve as a task opener; hand this document and the existing Crit spec to the agent together.
 
-> 在当前 Crit 7 仓库实现 Weekwise，遵守本产品规格。先读取 AGENTS.md、README、package.json、数据库 schema/migrations、Fly 配置、PROCESS.md 和 spec/README.md，确认 starter 已有能力。保留既有托管目标、技术栈、课程测试合同和用户未提交修改。
+> Implement Weekwise in the current Crit 7 repository, following this product spec. First read AGENTS.md, README, package.json, the database schema/migrations, Fly config, PROCESS.md, and spec/README.md, to confirm what the starter already provides. Preserve the existing hosting target, tech stack, course test contract, and any uncommitted user changes.
 >
-> 先完成并部署一条课程数据 → 手选班次 → 服务端校验 → SQLite 保存 → 刷新恢复的流程，再实现自动求解和界面增强。每个阶段给出具体变更、验证方法、结果与剩余问题，然后继续下一阶段。
+> First complete and deploy one flow — course data → manually chosen section → server validation → SQLite save → refresh-restore — before implementing automatic solving and UI enhancements. For each phase, give the concrete changes, how they were verified, the results, and remaining issues, then move to the next phase.
 >
-> 把 offering/group/option/occurrence 的关系作为领域依据；多次课的班次必须整体选择，冲突按实际日期和半开时间区间判断。用户硬条件必须保留。排序采用本文定义的三种词典序；推荐文案必须来自计算证据。
+> Treat the offering/group/option/occurrence relationship as the domain basis; a multi-session section must be chosen as a whole, and conflicts are judged by actual date and half-open time intervals. User hard constraints must be preserved. Ranking uses the three lexicographic orders defined in this document; recommendation copy must come from computed evidence.
 >
-> 当前数据未完整核对的课程不能被标为支持。真实数据和合成演示分开。不要假定存在可直接依赖的 ANU 公共 API；优先使用已核对的版本化 seed 数据。
+> A course whose data hasn't been fully verified must not be marked as supported. Keep real data and synthetic demo data separate. Do not assume a directly-dependable public ANU API exists; prefer already-verified versioned seed data.
 >
-> 在同一事务内保存方案、课程、班次、锁定和个人安排；服务器重新验证。方案限定当前匿名浏览器身份，修改检查 revision；不要把内存或 localStorage 当作正式保存路径。
+> Save the plan, courses, sections, locks, and personal commitments within the same transaction; the server re-validates. Plans are scoped to the current anonymous browser identity, and edits check the revision; do not treat in-memory state or localStorage as the real save path.
 >
-> 使用 starter 的适用检查，并补充 §19 的关键合同测试。确认 SQLite 在 Fly 持久卷上，迁移能访问该卷，重启不会丢失方案。按真实工作增量提交，实时记录 PROCESS.md。反思只记录真实发生的判断和修正。
+> Use the starter's applicable checks, and add the key contract tests from §19. Confirm SQLite lives on the Fly persistent volume, that migrations can access that volume, and that a restart does not lose plans. Commit in real, incremental steps, recording PROCESS.md as you go. The reflection should record only judgments and corrections that actually happened.
 >
-> 出现数据、语义或规模冲突时，说明具体证据并采用本文已定义的缩减顺序；不得通过删除必需活动、静默放宽硬条件、伪造名额或把未完成搜索说成无解来“完成”功能。
+> When a data, semantic, or scope conflict comes up, state the concrete evidence and use the scope-cutting order already defined in this document; do not "complete" a feature by deleting a required activity, silently relaxing a hard constraint, fabricating seat availability, or calling an incomplete search infeasible.
 
-### 24.1 Agent 每阶段应回答的四个问题
+### 24.1 Four questions the agent should answer at each phase
 
-1. 现在用户具体能完成什么？
-2. 哪一项规则／风险被验证了，证据是什么？
-3. 哪些内容仍是示例、假设或未支持？
-4. 下一阶段是否需要改变已确认的产品决定？
+1. What can the user actually accomplish right now?
+2. Which rule/risk was verified, and what's the evidence?
+3. What is still example data, an assumption, or unsupported?
+4. Does the next phase require changing any already-confirmed product decision?
 
-## 25. 来源与查证记录
+## 25. Sources and verification log
 
-查阅日期：2026-09-26（用户本地时间）。以下事实摘要用于界定设计，其余章节为本方案的设计建议。
+Date checked: 2026-09-26 (user's local time). The following factual summaries are used to bound the design; the remaining sections are this plan's design recommendations.
 
-- **[S1] C7 brief/spec**：全栈 ANU 场景、Fly 地址、刷新持久化与过程说明；页面仍标 Draft。https://comp.anu.edu.au/courses/comp4020-agentic-coding-studio/crits/07-anu-system/
-- **[S2] Crits overview**：Liùrú 为周三 15:30–17:00，cutoff 13:30；具体日期需结合教学周。https://comp.anu.edu.au/courses/comp4020-agentic-coding-studio/crits/
-- **[S3] MyTimetable access and support**：已有 planner、多方案保存、活动组等；借此避免把已有能力描述成不存在。https://www.anu.edu.au/students/program-administration/timetabling/01-access-and-support-for-mytimetable
-- **[S4] Timetable Viewer / Web Publisher guidance**：Web Publisher 为官方教学活动查看入口，旧 Viewer 为 legacy；活动可见性不等于对每个人开放。https://www.anu.edu.au/students/program-administration/timetabling/07-anu-timetable-viewer
-- **[S5] Web Publisher 2026**：已打开公开检索界面；未获得完整实际课程数据。https://mytimetable.anu.edu.au/even/timetable/
-- **[S6] Fly Volumes / SQLite**：持久卷及 SQLite 放置位置依据。https://fly.io/docs/volumes/overview/ 和 https://fly.io/docs/rails/advanced-guides/sqlite3/
-- **[S7] Fly deploy configuration**：release_command 临时机器默认无持久卷。https://fly.io/docs/reference/configuration/#the-deploy-section
+- **[S1] C7 brief/spec**: Full-stack ANU scenario, Fly address, refresh persistence and process notes; page still marked Draft. https://comp.anu.edu.au/courses/comp4020-agentic-coding-studio/crits/07-anu-system/
+- **[S2] Crits overview**: Thursday tutorial is Wednesday 15:30–17:00, cutoff 13:30; exact date depends on the teaching week. https://comp.anu.edu.au/courses/comp4020-agentic-coding-studio/crits/
+- **[S3] MyTimetable access and support**: Already has a planner, multi-plan save, activity groups, etc.; used to avoid describing existing capabilities as if they don't exist. https://www.anu.edu.au/students/program-administration/timetabling/01-access-and-support-for-mytimetable
+- **[S4] Timetable Viewer / Web Publisher guidance**: Web Publisher is the official teaching-activity viewing entry point, the old Viewer is legacy; activity visibility does not mean it's open to everyone. https://www.anu.edu.au/students/program-administration/timetabling/07-anu-timetable-viewer
+- **[S5] Web Publisher 2026**: Public search interface has been opened; complete actual course data was not obtained. https://mytimetable.anu.edu.au/even/timetable/
+- **[S6] Fly Volumes / SQLite**: Basis for persistent-volume and SQLite placement. https://fly.io/docs/volumes/overview/ and https://fly.io/docs/rails/advanced-guides/sqlite3/
+- **[S7] Fly deploy configuration**: release_command's temporary machine has no persistent volume by default. https://fly.io/docs/reference/configuration/#the-deploy-section
 
-## 26. 规划完成度与实施边界
+## 26. Planning completeness and implementation boundary
 
-本轮交付为产品与实施规划。已完成官方要求、现有系统功能、数据入口和 Fly 持久化限制的查证；已具体定义用户流程、排课语义、状态、接口、schema、开发顺序和验收合同。
+This round of delivery is a product and implementation plan. Verification has been completed for official requirements, existing system capabilities, data access, and Fly persistence limits; user flows, scheduling semantics, states, interfaces, schema, development order, and acceptance contracts have all been concretely defined.
 
-本文没有宣称已经取得真实课程完整数据、核验现有仓库、实现后端、执行应用测试或完成部署。§19 是未来实现的验收要求，§20 是预算估计，不能读作已经发生的结果。
+This document does not claim that complete real course data has been obtained, that the existing repository has been inspected, that the backend has been implemented, that app tests have been run, or that deployment has been completed. §19 is the acceptance requirement for future implementation, §20 is a budget estimate — neither should be read as something that has already happened.
 
-建议在开始开发前先冻结 §27 的默认决定，然后用两组事实校正：现有 starter 的实际结构，以及本人课程的真实活动规则。若事实与规划不一致，优先修正规划中的假设并记录原因。
+Before starting development, it's recommended to freeze the default decisions in §27, then correct them against two sets of facts: the actual structure of the existing starter, and the real activity rules of your own courses. If the facts don't match the plan, prioritize fixing the plan's assumptions and record why.
 
-本轮不需要为了证明规划详细而提前编写产品代码；下一步的开发任务可以依据 §24 直接拆解。
+This round does not need product code written ahead of time just to prove the plan is detailed; the next development task can be broken down directly from §24.
 
-## 27. 冻结决定与剩余输入
+## 27. Frozen decisions and remaining inputs needed
 
-可以直接采用的决定：
+Decisions that can be adopted directly:
 
-- Weekwise 名称与生活安排优先的产品定位。
-- Astro／starter 后端、Drizzle、SQLite、Fly。
-- 小数据集、精确求解、明确排序、单条件修复。
-- 版本化数据，按活动组与多次课建模。
-- 匿名浏览器身份、显式保存、revision 防覆盖。
-- 最多三张有区别的代表方案，手机使用按天列表。
+- The Weekwise name and the life-commitments-first product positioning.
+- Astro/starter backend, Drizzle, SQLite, Fly.
+- Small dataset, exact solving, explicit ranking, single-constraint repair.
+- Versioned data, modeled by activity group and multi-session sections.
+- Anonymous browser identity, explicit save, revision-based overwrite protection.
+- Up to three distinct representative plans, day-by-day list on mobile.
 
-实现前仍需取得的事实：
+Facts still needed before implementation:
 
-| 输入 | 为什么需要 | 最小获取方式 |
+| Input | Why it's needed | Minimal way to obtain it |
 |---|---|---|
-| 当前仓库和分支 | 避免重建已有功能或覆盖未提交工作 | agent 直接读取当前 checkout |
-| 你要展示的 3–4 门课程 | 真实 ANU 场景和数据准备 | 本人选定课程列表 |
-| 课程完整活动数据 | 决定算法的实际输入 | Web Publisher 导出／手工整理与核对 |
-| 可投入的实际时间 | 决定是否采用完整 Crit 目标或缩减版 | 对照 §20 选择 |
-| 至少一次本人真实痛点 | 让设计和 reflection 有事实基础 | 一段简短描述或旧排课示例 |
+| Current repository and branch | Avoid rebuilding existing features or overwriting uncommitted work | Agent reads the current checkout directly |
+| The 3–4 courses you'll demo | Real ANU scenario and data preparation | Your own selected course list |
+| Complete activity data for the courses | Determines the algorithm's actual input | Web Publisher export / manual compilation and verification |
+| Actual time available | Determines whether the full Crit target or a reduced version is used | Choose against §20 |
+| At least one real personal pain point | Gives the design and reflection a factual basis | A brief description or a past scheduling example |
 
-这些输入不妨碍按合成 fixture 实现领域模型、保存服务、求解器和界面。正式发布真实课程推荐前必须补齐课程数据依据。
+These inputs don't prevent implementing the domain model, save service, solver, and UI against a synthetic fixture. Real course-data support must be filled in before recommending real courses is publicly released.
