@@ -4,7 +4,7 @@ import { validateDataset } from "../timetable/validate";
 import type { Course, Dataset } from "../timetable/types";
 
 const datasetPath = fileURLToPath(
-  new URL("../../../data/timetable/anu-2026-s2.sample.json", import.meta.url),
+  new URL("../../../data/timetable/anu-2026-s1.json", import.meta.url),
 );
 
 let cached: Dataset | undefined;

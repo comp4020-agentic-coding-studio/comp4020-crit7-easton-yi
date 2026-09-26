@@ -1,0 +1,562 @@
+{
+  "manifest": {
+    "datasetId": "anu-2026-s1",
+    "version": "2026-s1.1",
+    "kind": "verified",
+    "term": "First Semester, 2026",
+    "timezone": "Australia/Sydney",
+    "teachingWeeks": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12
+    ],
+    "sourceUrl": null,
+    "reviewedAt": "2026-09-26",
+    "reviewedBy": "student self-review (ANU Web Publisher export, saved manually)",
+    "notice": "Planning data only. Confirm class availability and allocation in ANU MyTimetable.",
+    "notes": "Converted by scripts/timetable-import.ts on 2026-09-26 from the ANU Web Publisher JSON export data/source/anu-2026-s1.raw.json. Meeting times and locations are as published; each option's id preserves the export's own activity_group_code/activity_code. 2 row(s) excluded as non-bookable sections: COMP4712_S1_1_4036 LecA/01-P2 (activity_type \"Assessment\"); COMP4712_S1_1_4036 LecB/01_Clone (activity_type \"Clone\")."
+  },
+  "courses": [
+    {
+      "id": "comp4450",
+      "code": "COMP4450",
+      "title": "Computing Research Methods",
+      "activityGroups": [
+        {
+          "id": "comp4450-leca",
+          "label": "Lecture A",
+          "options": [
+            {
+              "id": "comp4450-leca-01",
+              "label": "Lecture A 01",
+              "meetings": [
+                {
+                  "weekday": 1,
+                  "startMinute": 480,
+                  "endMinute": 600,
+                  "location": "Theatre 2 (Rm 2.02), Lowitja O’Donoghue Cultural Centre Bldg 153",
+                  "mode": "in-person",
+                  "weeks": [
+                    1,
+                    2,
+                    4,
+                    5,
+                    6,
+                    7,
+                    9,
+                    10,
+                    11,
+                    12
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "comp4450-tuta",
+          "label": "Tutorial",
+          "options": [
+            {
+              "id": "comp4450-tuta-02",
+              "label": "Tutorial 02",
+              "meetings": [
+                {
+                  "weekday": 2,
+                  "startMinute": 900,
+                  "endMinute": 990,
+                  "location": "Rm 5.05, Marie Reay Bldg 155",
+                  "mode": "in-person",
+                  "weeks": [
+                    2,
+                    3,
+                    4,
+                    5,
+                    6,
+                    7,
+                    8,
+                    9,
+                    10,
+                    11,
+                    12
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "comp4450-tuta-03",
+              "label": "Tutorial 03",
+              "meetings": [
+                {
+                  "weekday": 3,
+                  "startMinute": 840,
+                  "endMinute": 930,
+                  "location": "Rm 5.05, Marie Reay Bldg 155",
+                  "mode": "in-person",
+                  "weeks": [
+                    2,
+                    3,
+                    4,
+                    5,
+                    6,
+                    7,
+                    8,
+                    9,
+                    10,
+                    11,
+                    12
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "comp4450-tuta-04",
+              "label": "Tutorial 04",
+              "meetings": [
+                {
+                  "weekday": 3,
+                  "startMinute": 930,
+                  "endMinute": 1020,
+                  "location": "Rm 5.05, Marie Reay Bldg 155",
+                  "mode": "in-person",
+                  "weeks": [
+                    2,
+                    3,
+                    4,
+                    5,
+                    6,
+                    7,
+                    8,
+                    9,
+                    10,
+                    11,
+                    12
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "comp4450-tuta-05",
+              "label": "Tutorial 05",
+              "meetings": [
+                {
+                  "weekday": 4,
+                  "startMinute": 840,
+                  "endMinute": 930,
+                  "location": "Rm 3.03, Marie Reay Bldg 155",
+                  "mode": "in-person"
+                }
+              ]
+            },
+            {
+              "id": "comp4450-tuta-06",
+              "label": "Tutorial 06",
+              "meetings": [
+                {
+                  "weekday": 4,
+                  "startMinute": 930,
+                  "endMinute": 1020,
+                  "location": "Rm 3.03, Marie Reay Bldg 155",
+                  "mode": "in-person",
+                  "weeks": [
+                    2,
+                    3,
+                    4,
+                    5,
+                    6,
+                    7,
+                    8,
+                    9,
+                    10,
+                    11,
+                    12
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "comp4680",
+      "code": "COMP4680",
+      "title": "Adv Topics in Machine Learning: Generative AI",
+      "activityGroups": [
+        {
+          "id": "comp4680-coma",
+          "label": "Lab",
+          "options": [
+            {
+              "id": "comp4680-coma-01",
+              "label": "Lab 01",
+              "meetings": [
+                {
+                  "weekday": 3,
+                  "startMinute": 660,
+                  "endMinute": 780,
+                  "location": "Rm N112, Skaidrite Darius Bldg 108",
+                  "mode": "in-person",
+                  "weeks": [
+                    2,
+                    3,
+                    4,
+                    5,
+                    6,
+                    7,
+                    8,
+                    9,
+                    10
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "comp4680-coma-02",
+              "label": "Lab 02",
+              "meetings": [
+                {
+                  "weekday": 4,
+                  "startMinute": 660,
+                  "endMinute": 780,
+                  "location": "Comp Lab 1.23, Hanna Neumann Bldg 145",
+                  "mode": "in-person",
+                  "weeks": [
+                    2,
+                    3,
+                    4,
+                    5,
+                    6,
+                    7,
+                    8,
+                    9,
+                    10
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "comp4680-coma-03",
+              "label": "Lab 03",
+              "meetings": [
+                {
+                  "weekday": 4,
+                  "startMinute": 840,
+                  "endMinute": 960,
+                  "location": "Rm N112, Skaidrite Darius Bldg 108",
+                  "mode": "in-person",
+                  "weeks": [
+                    2,
+                    3,
+                    4,
+                    5,
+                    6,
+                    7,
+                    8,
+                    9,
+                    10
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "comp4680-coma-04",
+              "label": "Lab 04",
+              "meetings": [
+                {
+                  "weekday": 5,
+                  "startMinute": 540,
+                  "endMinute": 660,
+                  "location": "Rm N114, Skaidrite Darius Bldg 108",
+                  "mode": "in-person",
+                  "weeks": [
+                    2,
+                    3,
+                    4,
+                    5,
+                    7,
+                    8,
+                    9,
+                    10
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "comp4680-leca",
+          "label": "Lecture A",
+          "options": [
+            {
+              "id": "comp4680-leca-01",
+              "label": "Lecture A 01",
+              "meetings": [
+                {
+                  "weekday": 2,
+                  "startMinute": 840,
+                  "endMinute": 960,
+                  "location": "Rm 2.02, Fulton Muir Bldg 95",
+                  "mode": "in-person"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "comp3242",
+      "code": "COMP3242",
+      "title": "Deep Learning",
+      "activityGroups": [
+        {
+          "id": "comp3242-leca",
+          "label": "Lecture A",
+          "options": [
+            {
+              "id": "comp3242-leca-01",
+              "label": "Lecture A 01",
+              "meetings": [
+                {
+                  "weekday": 1,
+                  "startMinute": 480,
+                  "endMinute": 540,
+                  "location": "Cinema Rm 1.02, Lowitja O’Donoghue Cultural Centre Bldg 153",
+                  "mode": "in-person",
+                  "weeks": [
+                    1,
+                    2,
+                    4,
+                    5,
+                    6,
+                    7,
+                    9,
+                    10,
+                    11,
+                    12
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "comp3242-lecb",
+          "label": "Lecture B",
+          "options": [
+            {
+              "id": "comp3242-lecb-01",
+              "label": "Lecture B 01",
+              "meetings": [
+                {
+                  "weekday": 2,
+                  "startMinute": 900,
+                  "endMinute": 960,
+                  "location": "Melville Hall, Bldg 12, Rm G01, Cinema Rm 1.02, Lowitja O’Donoghue Cultural Centre Bldg 153",
+                  "mode": "in-person"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "comp3242-wora",
+          "label": "Workshop",
+          "options": [
+            {
+              "id": "comp3242-wora-01",
+              "label": "Workshop 01",
+              "meetings": [
+                {
+                  "weekday": 3,
+                  "startMinute": 480,
+                  "endMinute": 600,
+                  "location": "Comp Lab 1.23, Hanna Neumann Bldg 145",
+                  "mode": "in-person"
+                }
+              ]
+            },
+            {
+              "id": "comp3242-wora-02",
+              "label": "Workshop 02",
+              "meetings": [
+                {
+                  "weekday": 3,
+                  "startMinute": 900,
+                  "endMinute": 1020,
+                  "location": "Comp Lab 1.23, Hanna Neumann Bldg 145",
+                  "mode": "in-person"
+                }
+              ]
+            },
+            {
+              "id": "comp3242-wora-03",
+              "label": "Workshop 03",
+              "meetings": [
+                {
+                  "weekday": 4,
+                  "startMinute": 480,
+                  "endMinute": 600,
+                  "location": "Comp Lab 1.23, Hanna Neumann Bldg 145",
+                  "mode": "in-person"
+                }
+              ]
+            },
+            {
+              "id": "comp3242-wora-04",
+              "label": "Workshop 04",
+              "meetings": [
+                {
+                  "weekday": 4,
+                  "startMinute": 900,
+                  "endMinute": 1020,
+                  "location": "Comp Lab 1.23, Hanna Neumann Bldg 145",
+                  "mode": "in-person"
+                }
+              ]
+            },
+            {
+              "id": "comp3242-wora-05",
+              "label": "Workshop 05",
+              "meetings": [
+                {
+                  "weekday": 5,
+                  "startMinute": 480,
+                  "endMinute": 600,
+                  "location": "Comp Lab 1.23, Hanna Neumann Bldg 145",
+                  "mode": "in-person",
+                  "weeks": [
+                    1,
+                    2,
+                    3,
+                    4,
+                    5,
+                    7,
+                    8,
+                    9,
+                    10,
+                    11,
+                    12
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "comp3242-wora-06",
+              "label": "Workshop 06",
+              "meetings": [
+                {
+                  "weekday": 5,
+                  "startMinute": 600,
+                  "endMinute": 720,
+                  "location": "Comp Lab 1.23, Hanna Neumann Bldg 145",
+                  "mode": "in-person",
+                  "weeks": [
+                    1,
+                    2,
+                    3,
+                    4,
+                    5,
+                    7,
+                    8,
+                    9,
+                    10,
+                    11,
+                    12
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "comp4712",
+      "code": "COMP4712",
+      "title": "Compiler Construction",
+      "activityGroups": [
+        {
+          "id": "comp4712-coma",
+          "label": "Lab",
+          "options": [
+            {
+              "id": "comp4712-coma-01",
+              "label": "Lab 01",
+              "meetings": [
+                {
+                  "weekday": 4,
+                  "startMinute": 840,
+                  "endMinute": 960,
+                  "location": "Rms N115/N116, Skaidrite Darius Bldg 108",
+                  "mode": "in-person"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "comp4712-leca",
+          "label": "Lecture A",
+          "options": [
+            {
+              "id": "comp4712-leca-01-p1",
+              "label": "Lecture A 01-P1",
+              "meetings": [
+                {
+                  "weekday": 4,
+                  "startMinute": 600,
+                  "endMinute": 720,
+                  "location": "Rm G08, Psychology Bldg 39",
+                  "mode": "in-person",
+                  "weeks": [
+                    1,
+                    2,
+                    3,
+                    4,
+                    5,
+                    7,
+                    8,
+                    9,
+                    10,
+                    11,
+                    12
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "comp4712-lecb",
+          "label": "Lecture B",
+          "options": [
+            {
+              "id": "comp4712-lecb-01",
+              "label": "Lecture B 01",
+              "meetings": [
+                {
+                  "weekday": 2,
+                  "startMinute": 600,
+                  "endMinute": 720,
+                  "location": "Theatre 1.43, Birch Bldg 35",
+                  "mode": "in-person"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
