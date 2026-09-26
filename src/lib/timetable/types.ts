@@ -103,11 +103,37 @@ export type Representative = Combination & {
   tradeoff: string;
 };
 
+/** One side of an unavoidable clash: the fixed activity that can't be avoided by choice. */
+export type ClashSide = {
+  courseId: string;
+  courseCode: string;
+  groupId: string;
+  groupLabel: string;
+  optionId: string;
+  optionLabel: string;
+  weekday: Weekday;
+  startMinute: number;
+  endMinute: number;
+};
+
+/**
+ * Two fixed (single-option) activities from different selected courses whose
+ * meetings conflict — no combination of choices can route around this, since
+ * neither side has an alternative option.
+ */
+export type HardClash = {
+  a: ClashSide;
+  b: ClashSide;
+  overlappingWeeks: number[];
+};
+
 export type SolveResult = {
   complete: boolean;
   feasibleCount?: number;
   foundCount?: number;
   representatives: Representative[];
+  /** Populated only when complete === true and no feasible combination exists. */
+  hardClashes?: HardClash[];
 };
 
 export type RelaxationCandidate =

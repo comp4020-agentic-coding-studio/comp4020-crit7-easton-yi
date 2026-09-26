@@ -1,6 +1,7 @@
 import type { APIRoute } from "astro";
 import { loadDataset } from "../../lib/server/dataset";
 import { BadRequestError, parseSolveRequestBody } from "../../lib/server/solve-request";
+import { findHardClashes } from "../../lib/timetable/clash";
 import { computeMetrics } from "../../lib/timetable/metrics";
 import { selectRepresentatives } from "../../lib/timetable/rank";
 import { solve } from "../../lib/timetable/solve";
@@ -45,10 +46,16 @@ export const POST: APIRoute = async ({ request }) => {
 
   const representatives = selectRepresentatives(withMetrics, input.preference);
 
+  const hardClashes =
+    complete && combinations.length === 0
+      ? findHardClashes(resolvedCourses, dataset.manifest.teachingWeeks)
+      : undefined;
+
   return Response.json({
     complete,
     feasibleCount: complete ? combinations.length : undefined,
     foundCount: complete ? undefined : combinations.length,
     representatives,
+    hardClashes,
   });
 };

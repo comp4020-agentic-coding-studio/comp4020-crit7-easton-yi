@@ -2,6 +2,7 @@ import { allGroups } from "../timetable/lookup";
 import type {
   Commitment,
   Course,
+  HardClash,
   Lock,
   Preference,
   RelaxationCandidate,
@@ -31,6 +32,7 @@ type SolveResponse = {
   feasibleCount?: number;
   foundCount?: number;
   representatives: Representative[];
+  hardClashes?: HardClash[];
 };
 
 type RepairResponse = { candidates: RelaxationCandidate[] };
@@ -123,12 +125,13 @@ export function initPlanner(root: HTMLElement, config: PlannerConfig): void {
   const statusEl = root.querySelector<HTMLElement>("#planner-status");
   const cardsEl = root.querySelector<HTMLElement>("#plan-cards");
   const repairEl = root.querySelector<HTMLElement>("#repair-suggestions");
+  const clashEl = root.querySelector<HTMLElement>("#clash-notice");
   const courseListEl = root.querySelector<HTMLElement>("#course-list");
   const commitmentListEl = root.querySelector<HTMLElement>("#commitment-list");
   const preferenceListEl = root.querySelector<HTMLElement>("#preference-list");
   const addCommitmentButton = root.querySelector<HTMLButtonElement>("#add-commitment");
 
-  if (!statusEl || !cardsEl || !repairEl || !courseListEl || !commitmentListEl || !preferenceListEl) {
+  if (!statusEl || !cardsEl || !repairEl || !clashEl || !courseListEl || !commitmentListEl || !preferenceListEl) {
     return;
   }
 
@@ -459,6 +462,64 @@ export function initPlanner(root: HTMLElement, config: PlannerConfig): void {
     repairEl!.append(list);
   }
 
+  function removeCourse(courseId: string) {
+    courseIds.delete(courseId);
+    const checkbox = courseListEl!.querySelector<HTMLInputElement>(
+      `input[name="course"][value="${cssEscape(courseId)}"]`,
+    );
+    if (checkbox) checkbox.checked = false;
+    void runSolve();
+  }
+
+  function renderHardClashes(clashes: HardClash[]) {
+    clashEl!.replaceChildren();
+    if (clashes.length === 0) return;
+
+    const heading = document.createElement("h2");
+    heading.textContent = "No clash-free plan";
+    clashEl!.append(heading);
+
+    const explanation = document.createElement("p");
+    explanation.textContent =
+      "These are fixed activities in the verified ANU Web Publisher dataset — every student in the section meets at this time, so no combination of choices can avoid the overlap.";
+    clashEl!.append(explanation);
+
+    const list = document.createElement("ul");
+    list.className = "hard-clashes";
+    const clashingCourseIds = new Set<string>();
+    for (const clash of clashes) {
+      clashingCourseIds.add(clash.a.courseId);
+      clashingCourseIds.add(clash.b.courseId);
+
+      const li = document.createElement("li");
+      const pair = document.createElement("p");
+      pair.textContent = `${clash.a.courseCode} vs ${clash.b.courseCode}`;
+      const detailA = document.createElement("p");
+      detailA.textContent = `${clash.a.courseCode} ${clash.a.groupLabel} (${clash.a.optionId}): ${WEEKDAY_LABELS[clash.a.weekday]} ${formatClock(clash.a.startMinute)}–${formatClock(clash.a.endMinute)}`;
+      const detailB = document.createElement("p");
+      detailB.textContent = `${clash.b.courseCode} ${clash.b.groupLabel} (${clash.b.optionId}): ${WEEKDAY_LABELS[clash.b.weekday]} ${formatClock(clash.b.startMinute)}–${formatClock(clash.b.endMinute)}`;
+      const weeks = document.createElement("p");
+      weeks.textContent = `Overlapping teaching weeks: ${clash.overlappingWeeks.join(", ")}`;
+      li.append(pair, detailA, detailB, weeks);
+      list.append(li);
+    }
+    clashEl!.append(list);
+
+    const actions = document.createElement("div");
+    actions.className = "clash-actions";
+    for (const courseId of clashingCourseIds) {
+      const course = courses.find((candidate) => candidate.id === courseId);
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "danger";
+      button.textContent = `Remove ${course?.code ?? courseId}`;
+      button.dataset.focusKey = `clash-remove:${courseId}`;
+      button.addEventListener("click", () => removeCourse(courseId));
+      actions.append(button);
+    }
+    clashEl!.append(actions);
+  }
+
   async function offerRepair() {
     try {
       const response = await fetch("/api/repair", {
@@ -482,6 +543,9 @@ export function initPlanner(root: HTMLElement, config: PlannerConfig): void {
       }
     });
 
+    const hardClashes = result.hardClashes ?? [];
+    renderHardClashes(hardClashes);
+
     if (result.representatives.length > 0) {
       const count = result.complete ? (result.feasibleCount ?? result.representatives.length) : (result.foundCount ?? result.representatives.length);
       setStatus(
@@ -489,6 +553,8 @@ export function initPlanner(root: HTMLElement, config: PlannerConfig): void {
           ? `Found ${count} valid combination${count === 1 ? "" : "s"}, showing up to 3.`
           : `Search stopped early — showing ${result.representatives.length} of the combinations found so far.`,
       );
+    } else if (hardClashes.length > 0) {
+      setStatus("No clash-free plan — see details below.", "error");
     } else if (result.complete) {
       setStatus("No combination satisfies every constraint you've set.", "error");
     } else {
@@ -499,6 +565,7 @@ export function initPlanner(root: HTMLElement, config: PlannerConfig): void {
   async function runSolve() {
     const seq = ++requestSequence;
     repairEl!.replaceChildren();
+    clashEl!.replaceChildren();
 
     if (courseIds.size === 0) {
       withFocusPreserved(cardsEl!, () => cardsEl!.replaceChildren());
@@ -535,7 +602,8 @@ export function initPlanner(root: HTMLElement, config: PlannerConfig): void {
     if (seq !== requestSequence) return;
 
     renderResults(result);
-    if (result.representatives.length === 0 && result.complete) void offerRepair();
+    const hasHardClash = (result.hardClashes ?? []).length > 0;
+    if (result.representatives.length === 0 && result.complete && !hasHardClash) void offerRepair();
   }
 
   courseListEl.addEventListener("change", (event) => {
